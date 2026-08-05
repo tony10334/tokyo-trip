@@ -238,10 +238,17 @@ function renderDayMap() {
       ${p.time ? `<span class="mp-leg-time">${esc(p.time)}</span>` : ''}
     </a>`).join('');
 
+  const open = localStorage.getItem(MAP_OPEN_KEY) === '1';
+
   $('#dayMap').innerHTML = `
-    <div class="card map-card">
-      <div class="map-head">
+    <div class="card map-card${open ? ' open' : ''}">
+      <button type="button" class="map-head" id="mapToggle">
         <span class="map-title">Day ${day.day} 大概在哪</span>
+        <span class="map-count">${pins.length} 個地方</span>
+        <span class="map-chev">${open ? '▴' : '▾'}</span>
+      </button>
+      <div class="map-body">
+      <div class="map-route">
         <a class="map-btn" target="_blank" rel="noopener" href="${dayRouteURL(pins)}">用 Google 地圖看路線 ↗</a>
       </div>
       <svg viewBox="0 0 ${MAP.w} ${MAP.h}" class="map-svg" role="img"
@@ -260,8 +267,15 @@ function renderDayMap() {
         編號是這天的順序,點名稱可開 Google 地圖 · 灰點是其他天的地方<br>
         這是相對位置示意圖,只用來抓方向感,不是精確地圖
       </div>
+      </div>
     </div>`;
+
+  $('#mapToggle').addEventListener('click', () => {
+    localStorage.setItem(MAP_OPEN_KEY, open ? '0' : '1');
+    renderDayMap();
+  });
 }
+const MAP_OPEN_KEY = 'tokyo-trip-map-open';
 
 /** 把距離 50px 以內的點併成一顆,回傳 [{x, y, idx:[0-based 序號]}] */
 function clusterPins(pins) {
@@ -311,6 +325,7 @@ function rowHTML(it) {
         <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</div>
         ${it.go ? `<div class="row-go">🚃 ${esc(it.go)}</div>` : ''}
         ${it.note ? `<div class="row-note">${esc(it.note)}</div>` : ''}
+        ${it.buy ? `<div class="row-buy">🛍️ ${esc(it.buy)}</div>` : ''}
         ${it.place || it.link ? `<div class="row-links">
           ${it.place ? `<a target="_blank" rel="noopener"
             href="https://www.google.com/maps/search/?api=1&query=${q}">📍 地圖</a>` : ''}
