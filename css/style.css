@@ -114,24 +114,26 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .empty { text-align: center; color: var(--ink-3); font-size: 13px; padding: 20px 0; }
 
 /* ============ 行程：日期選擇 ============ */
+/* 日期選擇：整排剛好填滿寬度的日曆條,不需要橫向捲動 */
 .daybar {
-  display: flex; gap: 9px; overflow-x: auto;
-  padding: 2px 14px 14px; margin: 0 -14px;
-  scrollbar-width: none;
-}
-.daybar::-webkit-scrollbar { display: none; }
-.daybtn {
-  flex: 0 0 auto; width: 48px; height: 54px;
+  display: flex; gap: 5px; margin-bottom: 13px;
   background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius-sm); cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  line-height: 1; box-shadow: var(--shadow); transition: transform .12s;
+  border-radius: var(--radius-sm); padding: 5px;
+  box-shadow: var(--shadow);
 }
-.daybtn .d { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; color: var(--ink-3); }
-.daybtn .n { font-size: 20px; font-weight: 800; margin-top: 3px; }
-.daybtn:active { transform: scale(.95); }
-.daybtn.active { background: var(--crimson); border-color: var(--crimson); color: #fff; }
-.daybtn.active .d { color: rgba(255,255,255,.7); }
+.daybtn {
+  flex: 1 1 0; min-width: 0; padding: 7px 0 8px;
+  background: none; border: 0; border-radius: 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  line-height: 1; color: var(--ink);
+  transition: background .15s, color .15s;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.daybtn .dw { font-size: 10px; font-weight: 700; color: var(--ink-3); }
+.daybtn .dn { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.daybtn:active { background: var(--card-2); }
+.daybtn.active { background: var(--crimson); color: #fff; }
+.daybtn.active .dw { color: rgba(255,255,255,.72); }
 
 /* ============ 行程：位置示意圖 ============ */
 .map-card { padding: 0; overflow: hidden; margin-bottom: 13px; }

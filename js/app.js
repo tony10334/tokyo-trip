@@ -136,12 +136,14 @@ function renderItinerary() {
   ITINERARY.forEach(d => {
     const b = document.createElement('button');
     b.className = 'daybtn' + (d.day === currentDay ? ' active' : '');
-    b.innerHTML = `<span class="d">D</span><span class="n">${d.day}</span>`;
+    const dt = dayDate(d.day);
+    // 有出發日期就顯示成日曆（週三 / 23）,沒有就退回 D1 D2
+    b.innerHTML = dt
+      ? `<span class="dw">${WEEK[dt.getDay()]}</span><span class="dn">${dt.getDate()}</span>`
+      : `<span class="dw">D</span><span class="dn">${d.day}</span>`;
     b.addEventListener('click', () => goDay(d.day));
     bar.appendChild(b);
   });
-  const active = bar.children[currentDay - 1];
-  if (active) active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
 
   /* --- 日卡 --- */
   const day = ITINERARY.find(d => d.day === currentDay) || ITINERARY[0];
