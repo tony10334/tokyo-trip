@@ -17,6 +17,25 @@ let currentDay = 1;
    啟動
    ------------------------------------------------------------ */
 (async function boot() {
+  try {
+    await start();
+  } catch (err) {
+    // 不要留給使用者一片空白 —— 通常是瀏覽器拿到新舊混用的檔案造成的
+    console.error(err);
+    $('#dayContent').innerHTML = `
+      <div class="card">
+        <div class="card-head"><h3>畫面載入失敗</h3></div>
+        <p class="hint">通常是瀏覽器抓到舊的檔案。請重新整理一次；
+          如果還是一樣,長按重新整理選「強制重新載入」,或關掉分頁重開。</p>
+        <div class="btn-row">
+          <button class="btn-line" onclick="location.reload(true)">重新整理</button>
+        </div>
+        <p class="hint" style="margin-top:12px">錯誤訊息：${esc(err && err.message)}</p>
+      </div>`;
+  }
+})();
+
+async function start() {
   const nights = ITINERARY.length - 1;
   const daysText = `${ITINERARY.length}日${nights}夜`;
   document.title = `東京 ${daysText}`;
@@ -34,7 +53,7 @@ let currentDay = 1;
 
   Store.onChange(renderAll);
   await Store.init();
-})();
+}
 
 function renderAll() {
   renderBrand();

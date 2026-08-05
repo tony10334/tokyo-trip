@@ -97,6 +97,24 @@ https://<你的帳號>.github.io/tokyo-trip/
 
 ---
 
+## ⚠️ 改完 css/js 一定要做的事
+
+`index.html` 裡引用 css 與 js 的網址都帶著 `?v=7`：
+
+```html
+<link rel="stylesheet" href="css/style.css?v=7">
+<script src="js/config.js?v=7"></script>
+...
+```
+
+**每次改動 css 或 js,把這 5 個 `v` 一起 +1 再 push。**
+
+GitHub Pages 給靜態檔的快取是 10 分鐘。沒有版本號的話,瀏覽器可能拿到
+「新的 index.html + 舊的 app.js」,兩邊對不起來就會整個畫面空白。
+版本號一改,瀏覽器就會視為不同檔案而重新下載。
+
+---
+
 ## 之後要改什麼
 
 | 想改的東西 | 改哪裡 |
