@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f0ea">
+<title>東京 7日6夜</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛩️</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">⛩</div>
+    <div class="brand-text">
+      <h1>東京 <em id="tripDays">7日6夜</em></h1>
+      <p id="tripSub">4人旅遊手冊</p>
+    </div>
+    <div class="brand-pill" id="tripPill">待定出發</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ 行程 ============ -->
+  <section class="page" id="page-itinerary">
+    <div class="page-head">
+      <div class="eyebrow">TOKYO · <span id="eyebrowDays">7日6夜</span></div>
+      <h2 class="page-title">行程總覽</h2>
+    </div>
+    <div class="daybar" id="dayBar"></div>
+    <div id="dayContent"></div>
+    <div class="daynav">
+      <button class="daynav-btn" id="dayPrev"></button>
+      <button class="daynav-btn" id="dayNext"></button>
+    </div>
+  </section>
+
+  <!-- ============ 分帳 ============ -->
+  <section class="page hidden" id="page-expenses">
+    <div class="page-head">
+      <div class="eyebrow">TOKYO · 4 人</div>
+      <h2 class="page-title">分帳結算</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>目前結餘</h3>
+        <button class="btn-ghost" id="btnMembers">成員設定</button>
+      </div>
+      <div id="balanceList" class="balance-list"></div>
+
+      <div class="settle-wrap">
+        <div class="sub-label">誰要付給誰</div>
+        <div id="settleList" class="settle-list"></div>
+      </div>
+
+      <div class="rate-row">
+        <label for="rateInput">匯率 1 TWD =</label>
+        <input type="number" id="rateInput" step="0.01" inputmode="decimal">
+        <span>JPY</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>新增支出</h3>
+        <span class="total-chip" id="totalChip">總計 ¥0</span>
+      </div>
+      <form id="expenseForm" class="form">
+        <div class="field">
+          <label for="expItem">項目</label>
+          <input type="text" id="expItem" placeholder="例：一蘭拉麵" required>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="expAmount">金額 (JPY)</label>
+            <input type="number" id="expAmount" min="1" step="1" inputmode="numeric" placeholder="0" required>
+          </div>
+          <div class="field">
+            <label for="expDay">日期</label>
+            <select id="expDay"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="expPayer">誰付的</label>
+          <select id="expPayer"></select>
+        </div>
+        <div class="field">
+          <label>誰要分攤 <button type="button" class="mini" id="btnAllShare">全選 / 全不選</button></label>
+          <div class="chips" id="expShare"></div>
+        </div>
+        <button type="submit" class="btn-primary">加入這筆</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>支出明細</h3></div>
+      <div id="expenseList" class="expense-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ 清單 ============ -->
+  <section class="page hidden" id="page-checklist">
+    <div class="page-head">
+      <div class="eyebrow">TOKYO · 出發前</div>
+      <h2 class="page-title">行前清單</h2>
+    </div>
+
+    <div class="card progress-card">
+      <div class="progress-head">
+        <div>
+          <div class="progress-num" id="clCount">0 / 0</div>
+          <div class="progress-sub">已經準備好的項目</div>
+        </div>
+        <button class="btn-ghost" id="btnResetCl">全部取消</button>
+      </div>
+      <div class="progress"><div class="progress-bar" id="clBar"></div></div>
+    </div>
+
+    <div id="checklistWrap"></div>
+
+    <form id="clAddForm" class="card form">
+      <div class="card-head"><h3>加自己的項目</h3></div>
+      <div class="field-row">
+        <div class="field" style="flex:2">
+          <label for="clAddText">項目</label>
+          <input type="text" id="clAddText" placeholder="還要帶什麼？">
+        </div>
+        <div class="field">
+          <label for="clAddCat">分類</label>
+          <select id="clAddCat"></select>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">新增</button>
+    </form>
+  </section>
+
+  <!-- ============ 資訊 ============ -->
+  <section class="page hidden" id="page-info">
+    <div class="page-head">
+      <div class="eyebrow">TOKYO · 備忘</div>
+      <h2 class="page-title">實用資訊</h2>
+    </div>
+
+    <div id="infoWrap"></div>
+
+    <div class="card">
+      <div class="card-head"><h3>4 人共享</h3></div>
+      <div id="shareBody"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>資料管理</h3></div>
+      <p class="hint">資料存在這台裝置的瀏覽器裡。可以匯出備份,或傳給同行的人匯入。</p>
+      <div class="btn-row">
+        <button class="btn-line" id="btnExport">匯出備份</button>
+        <button class="btn-line" id="btnImport">匯入備份</button>
+        <button class="btn-line danger" id="btnWipe">清空</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab active" data-page="itinerary"><span class="ico">🗾</span><span class="lb">行程</span></button>
+  <button class="tab" data-page="expenses"><span class="ico">🧾</span><span class="lb">分帳</span></button>
+  <button class="tab" data-page="checklist"><span class="ico">✅</span><span class="lb">清單</span></button>
+  <button class="tab" data-page="info"><span class="ico">📌</span><span class="lb">資訊</span></button>
+</nav>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle">成員</h3><button class="modal-x" id="modalClose">✕</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
