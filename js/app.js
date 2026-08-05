@@ -154,6 +154,7 @@ function rowHTML(it) {
       <div class="row-ico">${TYPE_ICON[it.type] || '•'}</div>
       <div class="row-main">
         <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</div>
+        ${it.go ? `<div class="row-go">🚃 ${esc(it.go)}</div>` : ''}
         ${it.note ? `<div class="row-note">${esc(it.note)}</div>` : ''}
         ${it.place || it.link ? `<div class="row-links">
           ${it.place ? `<a target="_blank" rel="noopener"
@@ -390,9 +391,23 @@ function allChecklistGroups() {
   return groups;
 }
 
+/* 哪些分類是展開的。這是「這台裝置的顯示偏好」,不同步給別人 */
+const OPEN_KEY = 'tokyo-trip-open-cats';
+function getOpenCats() {
+  try { return new Set(JSON.parse(localStorage.getItem(OPEN_KEY)) || []); }
+  catch { return new Set(); }
+}
+function toggleCat(cat) {
+  const s = getOpenCats();
+  s.has(cat) ? s.delete(cat) : s.add(cat);
+  localStorage.setItem(OPEN_KEY, JSON.stringify([...s]));
+  renderChecklist();
+}
+
 function renderChecklist() {
   const groups = allChecklistGroups();
   const checked = Store.state.checked;
+  const openCats = getOpenCats();
 
   const sel = $('#clAddCat');
   const prev = sel.value;
@@ -412,16 +427,25 @@ function renderChecklist() {
         ${it.custom ? `<button class="cl-del" data-clr="${it.id}" title="刪除">✕</button>` : ''}
       </div>`;
     }).join('');
-    return `<div class="card">
-      <div class="cl-cat"><span>${g.icon}</span>${esc(g.cat)}
-        <span class="n">${gDone}/${g.items.length}</span></div>
-      ${rows}
+    const open = openCats.has(g.cat);
+    const allDone = g.items.length && gDone === g.items.length;
+    return `<div class="card cl-card${open ? ' open' : ''}">
+      <button type="button" class="cl-cat" data-cat="${esc(g.cat)}">
+        <span class="cl-cat-ico">${g.icon}</span>
+        <span class="cl-cat-name">${esc(g.cat)}</span>
+        <span class="n${allDone ? ' all' : ''}">${allDone ? '✓ 完成' : gDone + '/' + g.items.length}</span>
+        <span class="chev">${open ? '▴' : '▾'}</span>
+      </button>
+      <div class="cl-body">${rows}</div>
     </div>`;
   }).join('');
 
   $('#checklistWrap').innerHTML = html;
   $('#clCount').textContent = `${done} / ${total}`;
   $('#clBar').style.width = total ? (done / total * 100) + '%' : '0%';
+
+  $$('#checklistWrap .cl-cat').forEach(b =>
+    b.addEventListener('click', () => toggleCat(b.dataset.cat)));
 
   $$('#checklistWrap .cl-item').forEach(el =>
     el.addEventListener('click', async ev => {
