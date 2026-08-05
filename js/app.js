@@ -139,12 +139,145 @@ function renderItinerary() {
       <div class="daycard-body">${day.items.map(rowHTML).join('')}</div>
     </article>`;
 
+  renderDayMap();
+
   /* --- 上一天 / 下一天 --- */
   const prev = $('#dayPrev'), next = $('#dayNext');
   prev.disabled = currentDay === 1;
   next.disabled = currentDay === ITINERARY.length;
   prev.textContent = currentDay === 1 ? '← 第一天' : `← Day ${currentDay - 1}`;
   next.textContent = currentDay === ITINERARY.length ? '最後一天 →' : `Day ${currentDay + 1} →`;
+}
+
+/* ------------------------------------------------------------
+   地圖（自己畫的示意圖,不連外、不用金鑰、離線也看得到）
+   ------------------------------------------------------------ */
+const MAP = { latMax: 35.740, latMin: 35.620, lngMin: 139.670, lngMax: 139.820, w: 1000, h: 980 };
+const DAY_COLOR = ['#a3123c', '#d4691e', '#2e8b64', '#2b6cb0', '#7c3aed', '#b45309', '#64748b'];
+
+function proj(lat, lng) {
+  return [
+    (lng - MAP.lngMin) / (MAP.lngMax - MAP.lngMin) * MAP.w,
+    (MAP.latMax - lat) / (MAP.latMax - MAP.latMin) * MAP.h,
+  ];
+}
+
+/** 這一天有座標的點,依行程順序 */
+function dayPins(day) {
+  return day.items
+    .filter(it => it.place && GEO[it.place])
+    .map(it => ({ title: it.title, place: it.place, time: it.time, xy: proj(...GEO[it.place]) }));
+}
+
+function renderDayMap() {
+  const day = ITINERARY.find(d => d.day === currentDay) || ITINERARY[0];
+  const pins = dayPins(day);
+  const color = DAY_COLOR[(day.day - 1) % DAY_COLOR.length];
+
+  if (!pins.length) {
+    $('#dayMap').innerHTML = `<div class="card map-card"><div class="map-empty">
+      這天不在東京市區（${esc(day.area)}）,示意圖只畫市區範圍</div></div>`;
+    return;
+  }
+
+  // 其他天的點：畫成淡灰小點當背景參考
+  const others = ITINERARY.filter(d => d.day !== day.day).flatMap(dayPins);
+
+  const loop = YAMANOTE.map(([, la, ln]) => proj(la, ln).map(Math.round).join(',')).join(' ');
+  const stations = YAMANOTE.filter(([n]) => MAP_STATIONS.includes(n)).map(([n, la, ln]) => {
+    const [x, y] = proj(la, ln);
+    return `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="7" class="mp-stn"/>
+            <text x="${(x + 12).toFixed(0)}" y="${(y + 6).toFixed(0)}" class="mp-stn-t">${n}</text>`;
+  }).join('');
+
+  // 太近的點合併成一顆,不然圓圈會疊在一起看不出有幾個地方
+  const clusters = clusterPins(pins);
+
+  const path = clusters.length > 1
+    ? `<polyline points="${clusters.map(c => `${Math.round(c.x)},${Math.round(c.y)}`).join(' ')}"
+         fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="10 8"
+         stroke-linejoin="round" opacity=".55"/>` : '';
+
+  // 只畫編號,名稱放地圖下面的對照表 —— 直接標在圖上會互相疊住看不清楚
+  const dots = clusters.map(c => {
+    const label = clusterLabel(c.idx);
+    const r = 22 + (label.length - 1) * 3.5;
+    const fs = label.length <= 1 ? 26 : label.length <= 3 ? 22 : 18;
+    return `<circle cx="${c.x.toFixed(0)}" cy="${c.y.toFixed(0)}" r="${r.toFixed(0)}" fill="${color}"
+              stroke="#faf8f5" stroke-width="4"/>
+            <text x="${c.x.toFixed(0)}" y="${(c.y + fs * 0.34).toFixed(0)}"
+              class="mp-num" style="font-size:${fs}px">${label}</text>`;
+  }).join('');
+
+  const legend = pins.map((p, i) => `
+    <a class="mp-leg" target="_blank" rel="noopener"
+       href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.place)}">
+      <span class="mp-leg-n" style="background:${color}">${i + 1}</span>
+      <span class="mp-leg-t">${esc(p.title)}</span>
+      ${p.time ? `<span class="mp-leg-time">${esc(p.time)}</span>` : ''}
+    </a>`).join('');
+
+  $('#dayMap').innerHTML = `
+    <div class="card map-card">
+      <div class="map-head">
+        <span class="map-title">Day ${day.day} 大概在哪</span>
+        <a class="map-btn" target="_blank" rel="noopener" href="${dayRouteURL(pins)}">用 Google 地圖看路線 ↗</a>
+      </div>
+      <svg viewBox="0 0 ${MAP.w} ${MAP.h}" class="map-svg" role="img"
+           aria-label="Day ${day.day} 景點相對位置示意圖">
+        <path class="mp-bay" d="M520,980 L560,900 L640,865 L700,870 L760,905 L840,895 L1000,915 L1000,980 Z"/>
+        <text x="880" y="955" class="mp-bay-t">東京灣</text>
+        <polygon points="${loop}" class="mp-loop"/>
+        <text x="150" y="430" class="mp-loop-t">山手線</text>
+        ${others.map(o => `<circle cx="${o.xy[0].toFixed(0)}" cy="${o.xy[1].toFixed(0)}" r="6" class="mp-other"/>`).join('')}
+        ${stations}
+        ${path}
+        ${dots}
+      </svg>
+      <div class="mp-legend">${legend}</div>
+      <div class="map-foot">
+        編號是這天的順序,點名稱可開 Google 地圖 · 灰點是其他天的地方<br>
+        這是相對位置示意圖,只用來抓方向感,不是精確地圖
+      </div>
+    </div>`;
+}
+
+/** 把距離 50px 以內的點併成一顆,回傳 [{x, y, idx:[0-based 序號]}] */
+function clusterPins(pins) {
+  const MIN = 50;
+  const out = [];
+  pins.forEach((p, i) => {
+    const hit = out.find(c => Math.hypot(c.x - p.xy[0], c.y - p.xy[1]) < MIN);
+    if (hit) {
+      hit.idx.push(i);
+      hit.x = (hit.x * (hit.idx.length - 1) + p.xy[0]) / hit.idx.length;
+      hit.y = (hit.y * (hit.idx.length - 1) + p.xy[1]) / hit.idx.length;
+    } else {
+      out.push({ x: p.xy[0], y: p.xy[1], idx: [i] });
+    }
+  });
+  return out;
+}
+
+/** [0,1,2] → "1-3"　[0,2] → "1·3" */
+function clusterLabel(idx) {
+  const n = idx.map(i => i + 1);
+  if (n.length === 1) return String(n[0]);
+  const consecutive = n.every((v, i) => i === 0 || v === n[i - 1] + 1);
+  return consecutive ? `${n[0]}-${n[n.length - 1]}` : n.join('·');
+}
+
+/** 用 Google 地圖開這一天的路線（免金鑰,直接開網頁或 App） */
+function dayRouteURL(pins) {
+  const names = pins.map(p => encodeURIComponent(p.place));
+  if (names.length === 1) {
+    return `https://www.google.com/maps/search/?api=1&query=${names[0]}`;
+  }
+  const origin = names[0];
+  const destination = names[names.length - 1];
+  const way = names.slice(1, -1).slice(0, 9).join('%7C');   // Google 上限 9 個中繼點
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`
+       + (way ? `&waypoints=${way}` : '') + `&travelmode=transit`;
 }
 
 function rowHTML(it) {
