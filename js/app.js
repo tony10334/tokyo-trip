@@ -155,8 +155,11 @@ function rowHTML(it) {
       <div class="row-main">
         <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</div>
         ${it.note ? `<div class="row-note">${esc(it.note)}</div>` : ''}
-        ${it.place ? `<a class="row-map" target="_blank" rel="noopener"
-          href="https://www.google.com/maps/search/?api=1&query=${q}">在地圖開啟 ↗</a>` : ''}
+        ${it.place || it.link ? `<div class="row-links">
+          ${it.place ? `<a target="_blank" rel="noopener"
+            href="https://www.google.com/maps/search/?api=1&query=${q}">📍 地圖</a>` : ''}
+          ${it.link ? `<a target="_blank" rel="noopener" href="${esc(it.link)}">🔗 官網</a>` : ''}
+        </div>` : ''}
       </div>
     </div>`;
 }
@@ -454,11 +457,18 @@ function renderInfo() {
   renderShare();
 }
 
-/** 電話號碼自動變成可撥打的連結 */
+/** 電話自動變成可撥打、網址自動變成可點的連結 */
 function linkify(v) {
-  const s = esc(v);
-  return /^[+\d][\d\-\s]{5,}$/.test(String(v).trim())
-    ? `<a href="tel:${String(v).replace(/[\s-]/g, '')}">${s}</a>` : s;
+  const raw = String(v).trim();
+  if (/^https?:\/\/\S+$/.test(raw)) {
+    const label = raw.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+    return `<a href="${esc(raw)}" target="_blank" rel="noopener">${esc(
+      label.length > 34 ? label.slice(0, 34) + '…' : label)} ↗</a>`;
+  }
+  if (/^[+\d][\d\-\s]{5,}$/.test(raw)) {
+    return `<a href="tel:${raw.replace(/[\s-]/g, '')}">${esc(raw)}</a>`;
+  }
+  return esc(raw);
 }
 
 /* --- 共享狀態卡 --- */

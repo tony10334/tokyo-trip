@@ -171,9 +171,12 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   border: 1px solid var(--line); border-radius: 999px;
   padding: 0 8px; margin-left: 6px; vertical-align: 2px; letter-spacing: .02em;
 }
-.row-map {
-  display: inline-block; margin-top: 6px; font-size: 12px;
-  color: var(--red); text-decoration: none; font-weight: 700;
+.row-links { display: flex; gap: 8px; margin-top: 7px; flex-wrap: wrap; }
+.row-links a {
+  font-size: 11.5px; font-weight: 700; text-decoration: none;
+  color: var(--crimson); background: var(--rose);
+  border: 1px solid var(--rose-line); border-radius: 999px;
+  padding: 2px 10px;
 }
 
 .daynav { display: flex; gap: 10px; margin-top: 13px; }
