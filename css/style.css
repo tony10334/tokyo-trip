@@ -73,6 +73,10 @@ button, input, select { font: inherit; color: inherit; }
   padding: 4px 11px; border-radius: 999px; white-space: nowrap;
 }
 .brand-pill.is-cloud { color: var(--ok); border-color: #cfe6da; background: #f1f9f5; }
+.brand-pill.is-cta {
+  color: var(--crimson); border-color: var(--rose-line);
+  background: var(--rose); cursor: pointer; font-weight: 700;
+}
 
 /* ============ 版面 ============ */
 main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }

@@ -24,6 +24,9 @@ let currentDay = 1;
   $('#eyebrowDays').textContent = daysText;
 
   bindTabs();
+  $('#tripPill').addEventListener('click', () => {
+    if ($('#tripPill').classList.contains('is-cta')) goTab('info');
+  });
   bindDayNav();
   bindExpenseForm();
   bindChecklistForm();
@@ -50,15 +53,24 @@ function renderBrand() {
 
   const pill = $('#tripPill');
   const st = Store.status;
-  if (st.mode !== 'local') {
-    pill.textContent = st.ok ? '已同步' : (st.msg || '未同步');
+  if (st.mode === 'cloud') {
+    pill.textContent = st.ok ? '4人共享中' : (st.msg || '離線中');
     pill.classList.toggle('is-cloud', st.ok);
-  } else {
+    pill.classList.remove('is-cta');
+  } else if (CONFIG.mode === 'shared') {
+    // 還沒開房 —— 點一下直接跳去開
+    pill.textContent = '尚未共享 ›';
     pill.classList.remove('is-cloud');
-    pill.textContent = CONFIG.startDate
-      ? `${fmtDate(dayDate(1))} 出發`
-      : '待定出發';
+    pill.classList.add('is-cta');
+  } else {
+    pill.classList.remove('is-cloud', 'is-cta');
+    pill.textContent = CONFIG.startDate ? `${fmtDate(dayDate(1))} 出發` : '待定出發';
   }
+}
+
+function goTab(name) {
+  const btn = document.querySelector(`.tab[data-page="${name}"]`);
+  if (btn) btn.click();
 }
 
 function dayDate(day) {
@@ -191,7 +203,8 @@ function bindExpenseForm() {
 }
 
 function renderExpenses() {
-  const { members, expenses, rate } = Store.state;
+  const { members, rate } = Store.state;
+  const expenses = Store.state.expenses.filter(e => !e.deleted);
 
   /* --- 表單控制項（保留使用者已選狀態）--- */
   const payer = $('#expPayer');
@@ -268,11 +281,10 @@ function renderExpenses() {
   $$('#expenseList [data-del]').forEach(b =>
     b.addEventListener('click', async () => {
       if (!confirm('確定刪除這筆？')) return;
-      // 標記為刪除（而非直接移除）,同步時才不會被別人的舊資料復活
+      // 只標記,不真的移除。刪除記號要同步出去,別人裝置上的舊資料才不會把它復活。
       await Store.commit(s => {
         const t = s.expenses.find(x => x.id === b.dataset.del);
         if (t) { t.deleted = true; t.ts = Date.now(); }
-        s.expenses = s.expenses.filter(x => !x.deleted);
       });
     }));
 }
@@ -367,7 +379,7 @@ function allChecklistGroups() {
     cat: g.cat, icon: g.icon || '•',
     items: g.items.map(t => ({ key: g.cat + '::' + t, text: t, custom: false })),
   }));
-  Store.state.customCl.forEach(c => {
+  Store.state.customCl.filter(c => !c.deleted).forEach(c => {
     let g = groups.find(x => x.cat === c.cat);
     if (!g) { g = { cat: c.cat, icon: '📝', items: [] }; groups.push(g); }
     g.items.push({ key: c.cat + '::' + c.text, text: c.text, custom: true, id: c.id });
@@ -423,7 +435,6 @@ function renderChecklist() {
       await Store.commit(s => {
         const t = s.customCl.find(x => x.id === b.dataset.clr);
         if (t) { t.deleted = true; t.ts = Date.now(); }
-        s.customCl = s.customCl.filter(x => !x.deleted);
       });
     }));
 }
@@ -452,60 +463,68 @@ function linkify(v) {
 
 /* --- 共享狀態卡 --- */
 function renderShare() {
-  const mode = (CONFIG.share && CONFIG.share.mode) || 'local';
   const box = $('#shareBody');
 
-  if (mode === 'local') {
-    box.innerHTML = `<p class="hint">目前是<b>單機模式</b>,資料只存在這台裝置,另外 3 個人看不到。
-      要開共享請改 <code>js/config.js</code> 的 <code>share.mode</code>,做法寫在 README。</p>`;
+  if (CONFIG.mode !== 'shared') {
+    box.innerHTML = `<p class="hint">共享已在 <code>js/config.js</code> 關閉
+      （<code>mode: 'local'</code>）,資料只存在這台裝置。</p>`;
     return;
   }
 
-  if (mode === 'gist') {
-    const ok = CONFIG.share.gistId && CONFIG.share.token;
-    box.innerHTML = ok
-      ? `<p class="hint">已接上 <b>GitHub Gist</b>,4 個人打開同一個網址就會自動同步（每 15 秒更新）。</p>
-         <div class="btn-row"><button class="btn-line" id="btnPull">立即重新整理</button></div>`
-      : `<p class="hint">模式設成 gist,但 <code>gistId</code> 或 <code>token</code> 還沒填,請看 README。</p>`;
-    if (ok) $('#btnPull').addEventListener('click', async () => { await Store.pull(); toast('已更新'); });
-    return;
-  }
+  const id = roomId();
 
-  const id = localStorage.getItem('tokyo-trip-room') || CONFIG.share.roomId;
-  if (id) {
-    const url = location.origin + location.pathname + '?room=' + id;
-    box.innerHTML = `<p class="hint">共享中。把下面的網址丟給另外 3 個人,他們打開就會同步。</p>
-      <div class="field"><input type="text" id="shareUrl" readonly value="${esc(url)}"></div>
+  /* --- 還沒開房 --- */
+  if (!id) {
+    box.innerHTML = `
+      <p class="hint">現在資料只存在這台裝置。開一個共享房間,4 個人就能同時看、同時記帳
+        —— 誰改了什麼,其他人 15 秒內都會看到。<b>不用註冊、不用密碼。</b></p>
       <div class="btn-row">
-        <button class="btn-line" id="btnCopyUrl">複製網址</button>
-        <button class="btn-line" id="btnPull">立即重新整理</button>
-      </div>`;
-    $('#btnCopyUrl').addEventListener('click', () => {
-      const i = $('#shareUrl'); i.select();
-      navigator.clipboard?.writeText(i.value).then(() => toast('已複製')).catch(() => toast('請長按複製'));
-    });
-    $('#btnPull').addEventListener('click', async () => { await Store.pull(); toast('已更新'); });
-  } else {
-    box.innerHTML = `<p class="hint">按一下建立共享房間,會產生一個網址,丟給另外 3 個人就能一起看、一起記帳,免註冊。</p>
-      <div class="btn-row">
-        <button class="btn-line" id="btnCreateRoom">建立共享房間</button>
-        <button class="btn-line" id="btnJoinRoom">用共享碼加入</button>
+        <button class="btn-line" id="btnCreateRoom" style="background:var(--crimson);color:#fff;border-color:var(--crimson)">建立共享房間</button>
+        <button class="btn-line" id="btnJoinRoom">我有房號,加入</button>
       </div>`;
     $('#btnCreateRoom').addEventListener('click', async () => {
+      const btn = $('#btnCreateRoom');
+      btn.disabled = true; btn.textContent = '建立中…';
       try {
-        await JsonBlobBackend.createRoom(Store.state);
+        await CloudBackend.createRoom(Store.state);
         toast('建立成功,重新載入中…');
-        setTimeout(() => location.reload(), 700);
-      } catch (err) { toast('建立失敗：' + err.message); }
-    });
-    $('#btnJoinRoom').addEventListener('click', () => {
-      const code = prompt('貼上共享碼');
-      if (code && code.trim()) {
-        localStorage.setItem('tokyo-trip-room', code.trim());
-        location.reload();
+        setTimeout(() => location.reload(), 600);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = '建立共享房間';
+        toast('建立失敗：' + err.message);
       }
     });
+    $('#btnJoinRoom').addEventListener('click', () => {
+      const code = prompt('貼上房號（或整段分享網址）');
+      if (!code) return;
+      const m = code.match(/room=([\w-]+)/);
+      setRoomId((m ? m[1] : code).trim());
+      location.reload();
+    });
+    return;
   }
+
+  /* --- 共享中 --- */
+  const url = location.origin + location.pathname + '?room=' + id;
+  box.innerHTML = `
+    <p class="hint">共享中 ✅ 把下面的網址丟到群組,另外 3 個人打開就會同步。
+      他們也可以「加到主畫面」當 App 用。</p>
+    <div class="field"><input type="text" id="shareUrl" readonly value="${esc(url)}"></div>
+    <div class="btn-row">
+      <button class="btn-line" id="btnCopyUrl" style="background:var(--crimson);color:#fff;border-color:var(--crimson)">複製分享網址</button>
+      <button class="btn-line" id="btnPull">立即抓最新</button>
+    </div>
+    <p class="hint" style="margin:12px 0 0">
+      沒網路時照樣能記帳,回到有訊號會自動補傳。<br>
+      知道這個網址的人都能編輯,所以不要放信用卡卡號之類的東西。</p>`;
+
+  $('#btnCopyUrl').addEventListener('click', () => {
+    const i = $('#shareUrl'); i.select(); i.setSelectionRange(0, 999);
+    navigator.clipboard?.writeText(i.value)
+      .then(() => toast('已複製,貼到群組吧'))
+      .catch(() => toast('請長按選取複製'));
+  });
+  $('#btnPull').addEventListener('click', async () => { await Store.pull(); toast('已更新'); });
 }
 
 /* ------------------------------------------------------------

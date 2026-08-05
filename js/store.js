@@ -4,10 +4,13 @@
    整個 App 只透過 Store 存取資料。要換共享方式時,只動這個檔,
    畫面(app.js)完全不用改。
 
-   目前支援三種模式,在 js/config.js 的 CONFIG.share.mode 切換：
-     'local'    只存這台裝置（預設,免設定）
-     'gist'     用 GitHub Gist 當資料庫（不用辦新帳號）
-     'jsonblob' 用 jsonblob.com（完全免註冊,按鈕產生共享碼）
+   兩種模式（js/config.js 的 CONFIG.mode）：
+     'shared'  有房號就走雲端,4 個人即時同步；沒房號時自動退回本機
+     'local'   只存這台裝置
+
+   不需要帳號,也不需要任何金鑰 —— 原始碼裡不會有私人資料。
+   規則：每次改動【一定先寫本機】,再嘗試推雲端。所以飛機上、
+   地鐵沒訊號時照樣能用,有網路時自動補上。
    ============================================================ */
 
 const Store = {
@@ -39,7 +42,10 @@ const Store = {
       Store.status = { mode: this._backend.name, ok: false, msg: '連線失敗' };
       remote = LocalBackend.readRaw();
     }
-    this.state = normalize(remote);
+    // 共享模式：把這台裝置本來就有的資料併進雲端資料,不要直接蓋掉
+    this.state = this._backend.shared
+      ? merge(normalize(remote), normalize(LocalBackend.readRaw()))
+      : normalize(remote);
     if (!this.state.members.length) this.state.members = CONFIG.members.slice();
     if (!this.state.rate) this.state.rate = CONFIG.defaultRate;
 
@@ -154,7 +160,9 @@ function mergeById(a, b) {
     const prev = map.get(x.id);
     if (!prev || (x.ts || 0) >= (prev.ts || 0)) map.set(x.id, x);
   });
-  return [...map.values()].filter(x => !x.deleted).sort((x, y) => (x.ts || 0) - (y.ts || 0));
+  // 刪除記號要保留下來一起同步,否則對方裝置上的舊資料會把它復活。
+  // 畫面端負責過濾 deleted,這裡不能濾掉。
+  return [...map.values()].sort((x, y) => (x.ts || 0) - (y.ts || 0));
 }
 
 function mergeChecked(a, b, ta, tb) {
@@ -177,41 +185,9 @@ const LocalBackend = {
   async save(v) { this.writeRaw(v); },
 };
 
-/* --- GitHub Gist：不用辦新帳號,穩定度最高 --- */
-const GistBackend = {
-  name: 'gist', shared: true,
-  get _cfg() { return CONFIG.share; },
-  async load() {
-    const r = await fetch(`https://api.github.com/gists/${this._cfg.gistId}`, {
-      headers: { Authorization: `Bearer ${this._cfg.token}`, Accept: 'application/vnd.github+json' },
-      cache: 'no-store',
-    });
-    if (!r.ok) throw new Error('Gist 讀取失敗 ' + r.status);
-    const gist = await r.json();
-    const file = gist.files[GIST_FILE];
-    if (!file) return null;
-    // 檔案太大時 GitHub 會截斷,改抓 raw_url
-    const content = file.truncated ? await (await fetch(file.raw_url)).text() : file.content;
-    try { return JSON.parse(content); } catch { return null; }
-  },
-  async save(v) {
-    const r = await fetch(`https://api.github.com/gists/${this._cfg.gistId}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${this._cfg.token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(v) } } }),
-    });
-    if (!r.ok) throw new Error('Gist 寫入失敗 ' + r.status);
-  },
-};
-const GIST_FILE = 'tokyo-trip.json';
-
-/* --- jsonblob：完全免註冊,用「共享碼」加入 --- */
-const JsonBlobBackend = {
-  name: 'jsonblob', shared: true,
+/* --- 雲端共享：完全免註冊、免金鑰,用「房號」加入 --- */
+const CloudBackend = {
+  name: 'cloud', shared: true,
   base: 'https://jsonblob.com/api/jsonBlob',
   get _id() { return roomId(); },
   async load() {
@@ -243,18 +219,15 @@ const JsonBlobBackend = {
   },
 };
 
-/* 共享碼：網址 ?room=xxx 優先,其次記在本機 */
+/* 房號：網址 ?room=xxx 優先（別人分享給你）,其次記在本機 */
 const ROOM_KEY = 'tokyo-trip-room';
 function roomId() {
   const q = new URLSearchParams(location.search).get('room');
   if (q) { localStorage.setItem(ROOM_KEY, q); return q; }
-  return CONFIG.share.roomId || localStorage.getItem(ROOM_KEY) || '';
+  return localStorage.getItem(ROOM_KEY) || '';
 }
 function setRoomId(id) { localStorage.setItem(ROOM_KEY, id); }
 
 function pickBackend() {
-  const mode = (CONFIG.share && CONFIG.share.mode) || 'local';
-  if (mode === 'gist' && CONFIG.share.token && CONFIG.share.gistId) return GistBackend;
-  if (mode === 'jsonblob' && roomId()) return JsonBlobBackend;
-  return LocalBackend;
+  return (CONFIG.mode === 'shared' && roomId()) ? CloudBackend : LocalBackend;
 }
