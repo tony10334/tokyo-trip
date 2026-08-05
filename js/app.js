@@ -39,6 +39,7 @@ let currentDay = 1;
 function renderAll() {
   renderBrand();
   renderItinerary();
+  renderFood();
   renderExpenses();
   renderChecklist();
   renderInfo();
@@ -162,6 +163,40 @@ function rowHTML(it) {
           ${it.link ? `<a target="_blank" rel="noopener" href="${esc(it.link)}">🔗 官網</a>` : ''}
         </div>` : ''}
       </div>
+    </div>`;
+}
+
+/* ------------------------------------------------------------
+   美食
+   ------------------------------------------------------------ */
+function renderFood() {
+  $('#foodWrap').innerHTML = FOOD.map(g => `
+    <div class="card food-card${g.far ? ' far' : ''}">
+      <div class="food-head">
+        <h3>${esc(g.area)}</h3>
+        <span class="food-when">${esc(g.when)}</span>
+      </div>
+      ${g.shops.map(shopHTML).join('')}
+    </div>`).join('');
+}
+
+function shopHTML(s) {
+  const q = encodeURIComponent(s.place || s.name);
+  return `
+    <div class="shop">
+      <div class="shop-top">
+        <a class="shop-name" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/search/?api=1&query=${q}">${esc(s.name)} ↗</a>
+        <span class="shop-kind">${esc(s.kind)}</span>
+      </div>
+      <div class="shop-meta">
+        ${s.score && s.score !== '—' ? `<span class="star">★ ${esc(s.score)}</span>` : ''}
+        ${s.price ? `<span>${esc(s.price)}</span>` : ''}
+      </div>
+      <div class="shop-where">📍 ${esc(s.where)}</div>
+      ${s.open ? `<div class="shop-open">🕐 ${esc(s.open)}</div>` : ''}
+      ${s.note ? `<div class="shop-note">${esc(s.note)}</div>` : ''}
+      ${s.link ? `<a class="shop-link" target="_blank" rel="noopener" href="${esc(s.link)}">官網 ↗</a>` : ''}
     </div>`;
 }
 
