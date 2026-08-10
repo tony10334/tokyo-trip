@@ -326,6 +326,7 @@ function rowHTML(it) {
         ${it.go ? `<div class="row-go">🚃 ${esc(it.go)}</div>` : ''}
         ${it.note ? `<div class="row-note">${esc(it.note)}</div>` : ''}
         ${it.buy ? `<div class="row-buy">🛍️ ${esc(it.buy)}</div>` : ''}
+        ${it.cost ? `<div class="row-cost">💰 ${esc(it.cost)}</div>` : ''}
         ${it.place || it.link ? `<div class="row-links">
           ${it.place ? `<a target="_blank" rel="noopener"
             href="https://www.google.com/maps/search/?api=1&query=${q}">📍 地圖</a>` : ''}
