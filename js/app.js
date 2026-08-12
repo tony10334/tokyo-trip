@@ -995,7 +995,7 @@ function renderShare() {
       try {
         await CloudBackend.createRoom(Store.state);
         toast('建立成功,重新載入中…');
-        setTimeout(() => location.reload(), 600);
+        setTimeout(() => { location.href = location.origin + location.pathname; }, 600);
       } catch (err) {
         btn.disabled = false; btn.textContent = '建立共享房間';
         toast('建立失敗：' + err.message);
@@ -1030,7 +1030,9 @@ function renderShare() {
       try {
         await CloudBackend.createRoom(Store.state);
         toast('重建成功,重新載入中…');
-        setTimeout(() => location.reload(), 600);
+        // ⚠️ 一定要用「乾淨網址」重載：如果現在的網址帶著舊的 ?room=,
+        // 重新整理時網址參數會把剛存好的新房號蓋回死房號,重建等於白做
+        setTimeout(() => { location.href = location.origin + location.pathname; }, 600);
       } catch (err) {
         btn.disabled = false; btn.textContent = '用這台的資料重建房間';
         toast('重建失敗：' + err.message);

@@ -54,6 +54,12 @@ const Store = {
     if (!this.state.members.length) this.state.members = CONFIG.members.slice();
     if (!this.state.rate) this.state.rate = CONFIG.defaultRate;
 
+    // 雲端房間被清掉（回空資料)但這台手機有資料 → 自動推回去,房間原地復活
+    if (this._backend.shared && !remote && this.state.updatedAt) {
+      try { await this._backend.save(this.state); Store.status = { mode: 'cloud', ok: true }; }
+      catch (err) { console.warn('自動復活房間失敗', err); }
+    }
+
     // 雲端模式在背景定時拉新資料
     if (this._backend.shared) {
       this._timer = setInterval(() => this.pull(), 15000);
@@ -194,36 +200,40 @@ const LocalBackend = {
   async save(v) { this.writeRaw(v); },
 };
 
-/* --- 雲端共享：完全免註冊、免金鑰,用「房號」加入 --- */
+/* --- 雲端共享：完全免註冊、免金鑰,用「房號」加入 ---
+   後端是 textdb.online（2026/8 起。原本的 jsonblob 停止開放新建 blob,403）。
+   textdb 的 key 是自己取的、「寫入即建立」,所以：
+   - 舊 jsonblob 房號字串直接沿用,變成 textdb 上同名的 key,大家不用換網址
+   - 房間 30 天沒動被清掉也沒關係 —— 下次任何人寫入,同一個房號自動復活
+   限制：單筆 20 萬字元、每 IP 每天 500 次寫入（讀取不限）。 */
 const CloudBackend = {
   name: 'cloud', shared: true,
-  base: 'https://jsonblob.com/api/jsonBlob',
+  base: 'https://textdb.online',
   get _id() { return roomId(); },
   async load() {
-    const r = await fetch(`${this.base}/${this._id}`, { cache: 'no-store' });
+    const r = await fetch(`${this.base}/${encodeURIComponent(this._id)}`, { cache: 'no-store' });
     if (!r.ok) { const e = new Error('讀取失敗 ' + r.status); e.status = r.status; throw e; }
-    return r.json();
+    const t = (await r.text()).trim();
+    if (!t) return null;   // 房間過期被清或還沒建 → 當空資料,寫入時自動復活
+    try { return JSON.parse(t); } catch { return null; }
   },
   async save(v) {
-    const r = await fetch(`${this.base}/${this._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(v),
+    const json = JSON.stringify(v);
+    if (json.length > 190000) throw new Error('資料量超過免費空間上限(20萬字),先匯出備份並清掉舊支出');
+    // ⚠️ /update 結尾不能加斜線：/update/ 會觸發轉址,POST 的資料會在轉址時掉光
+    const r = await fetch(`${this.base}/update`, {
+      method: 'POST',
+      body: new URLSearchParams({ key: this._id, value: json }),
     });
     if (!r.ok) { const e = new Error('寫入失敗 ' + r.status); e.status = r.status; throw e; }
+    const res = await r.json().catch(() => null);
+    if (!res || res.status !== 1) throw new Error('寫入被拒絕');
   },
-  /** 第一次開房：把目前資料丟上去,拿到共享碼 */
+  /** 第一次開房：自己產生房號,把目前資料丟上去 */
   async createRoom(v) {
-    const r = await fetch(this.base, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(v),
-    });
-    if (!r.ok) throw new Error('建立失敗 ' + r.status);
-    const loc = r.headers.get('Location') || r.headers.get('location') || '';
-    const id = loc.split('/').pop();
-    if (!id) throw new Error('拿不到共享碼(瀏覽器擋掉了回應標頭)');
+    const id = 'tokyo-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     setRoomId(id);
+    try { await this.save(v); } catch (err) { localStorage.removeItem(ROOM_KEY); throw err; }
     return id;
   },
 };
