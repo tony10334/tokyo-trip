@@ -587,20 +587,34 @@ function showEditTour(manual) {
    美食
    ------------------------------------------------------------ */
 const FOOD_AREA_KEY = 'tokyo-trip-food-area';
+
+/** 底版 FOOD + 大家新增的店,合成完整分區清單 */
+function foodGroups() {
+  const groups = FOOD.map(g => ({ ...g, shops: g.shops.slice() }));
+  (Store.state.customFood || []).filter(c => !c.deleted).forEach(c => {
+    let g = groups.find(x => x.area === c.area);
+    if (!g) { g = { area: c.area, when: '自訂', shops: [] }; groups.push(g); }
+    g.shops.push({ ...c, _custom: true });
+  });
+  return groups;
+}
+
 function renderFood() {
+  const groups = foodGroups();
   let sel = localStorage.getItem(FOOD_AREA_KEY) || '';
-  if (sel && !FOOD.some(g => g.area === sel)) sel = '';
-  const shown = sel ? FOOD.filter(g => g.area === sel) : FOOD;
+  if (sel && !groups.some(g => g.area === sel)) sel = '';
+  const shown = sel ? groups.filter(g => g.area === sel) : groups;
 
   $('#foodWrap').innerHTML = `
     <div class="card food-filter">
-      <div class="field" style="margin:0">
+      <div class="field" style="margin:0 0 10px">
         <label>📍 選地點,看那附近有什麼吃的</label>
         <select id="foodAreaSel">
-          <option value="">全部地點（${FOOD.length} 區）</option>
-          ${FOOD.map(g => `<option value="${esc(g.area)}"${g.area === sel ? ' selected' : ''}>${esc(g.area)}　·　${esc(g.when)}</option>`).join('')}
+          <option value="">全部地點（${groups.length} 區）</option>
+          ${groups.map(g => `<option value="${esc(g.area)}"${g.area === sel ? ' selected' : ''}>${esc(g.area)}　·　${esc(g.when)}</option>`).join('')}
         </select>
       </div>
+      <button type="button" class="btn-add-item" id="btnAddFood" style="width:100%">＋ 新增店家</button>
     </div>` +
     shown.map(g => `
     <div class="card food-card${g.far ? ' far' : ''}">
@@ -616,6 +630,61 @@ function renderFood() {
     renderFood();
     window.scrollTo({ top: 0 });
   });
+  $('#btnAddFood').addEventListener('click', openFoodModal);
+
+  $$('#foodWrap [data-fdel]').forEach(b =>
+    b.addEventListener('click', async () => {
+      if (!confirm('確定刪掉這家店？')) return;
+      await Store.commit(s => {
+        const t = s.customFood.find(x => x.id === b.dataset.fdel);
+        if (t) { t.deleted = true; t.ts = Date.now(); }
+      });
+    }));
+}
+
+function openFoodModal() {
+  const areas = foodGroups().map(g => g.area);
+  const cur = localStorage.getItem(FOOD_AREA_KEY) || '';
+  showModal('新增店家', `
+    <div class="field"><label>地區</label>
+      <select id="cfArea">
+        ${areas.map(a => `<option${a === cur ? ' selected' : ''}>${esc(a)}</option>`).join('')}
+        <option value="__new">＋ 新地區…</option>
+      </select></div>
+    <div class="field hidden" id="cfNewAreaWrap"><label>新地區名稱</label>
+      <input type="text" id="cfNewArea" placeholder="例：河口湖"></div>
+    <div class="field"><label>店名（必填）</label><input type="text" id="cfName"></div>
+    <div class="field-2col">
+      <div class="field"><label>類型</label><input type="text" id="cfKind" placeholder="拉麵 / 燒肉 / 咖啡…"></div>
+      <div class="field"><label>價位</label><input type="text" id="cfPrice" placeholder="¥1,000–2,000"></div>
+    </div>
+    <div class="field"><label>📍 位置（怎麼走）</label><input type="text" id="cfWhere"></div>
+    <div class="field"><label>🕐 營業時間</label><input type="text" id="cfOpen"></div>
+    <div class="field"><label>備註</label><textarea id="cfNote" rows="2"></textarea></div>
+    <button class="btn-primary" id="cfSave" style="width:100%">加進美食清單</button>
+  `);
+
+  $('#cfArea').addEventListener('change', () =>
+    $('#cfNewAreaWrap').classList.toggle('hidden', $('#cfArea').value !== '__new'));
+
+  $('#cfSave').addEventListener('click', async () => {
+    const area = $('#cfArea').value === '__new'
+      ? $('#cfNewArea').value.trim() : $('#cfArea').value;
+    const name = $('#cfName').value.trim();
+    if (!area) return toast('地區要填');
+    if (!name) return toast('店名要填');
+    await Store.commit(s => s.customFood.push({
+      id: uid(), area, name,
+      kind: $('#cfKind').value.trim() || undefined,
+      price: $('#cfPrice').value.trim() || undefined,
+      where: $('#cfWhere').value.trim() || undefined,
+      open: $('#cfOpen').value.trim() || undefined,
+      note: $('#cfNote').value.trim() || undefined,
+      ts: Date.now(),
+    }));
+    closeModal();
+    toast('已加進「' + area + '」');
+  });
 }
 
 function shopHTML(s) {
@@ -625,13 +694,14 @@ function shopHTML(s) {
       <div class="shop-top">
         <a class="shop-name" target="_blank" rel="noopener"
            href="https://www.google.com/maps/search/?api=1&query=${q}">${esc(s.name)} ↗</a>
-        <span class="shop-kind">${esc(s.kind)}</span>
+        <span class="shop-kind">${esc(s.kind || '')}</span>
+        ${s._custom ? `<button class="cl-del" data-fdel="${s.id}" title="刪除">✕</button>` : ''}
       </div>
       <div class="shop-meta">
         ${s.score && s.score !== '—' ? `<span class="star">★ ${esc(s.score)}</span>` : ''}
         ${s.price ? `<span>${esc(s.price)}</span>` : ''}
       </div>
-      <div class="shop-where">📍 ${esc(s.where)}</div>
+      ${s.where ? `<div class="shop-where">📍 ${esc(s.where)}</div>` : ''}
       ${s.open ? `<div class="shop-open">🕐 ${esc(s.open)}</div>` : ''}
       ${s.note ? `<div class="shop-note">${esc(s.note)}</div>` : ''}
       ${s.link ? `<a class="shop-link" target="_blank" rel="noopener" href="${esc(s.link)}">官網 ↗</a>` : ''}
@@ -852,9 +922,11 @@ function bindChecklistForm() {
 }
 
 function allChecklistGroups() {
+  const hidden = Store.state.clHidden || {};
   const groups = CHECKLIST.map(g => ({
     cat: g.cat, icon: g.icon || '•',
-    items: g.items.map(t => ({ key: g.cat + '::' + t, text: t, custom: false })),
+    items: g.items.map(t => ({ key: g.cat + '::' + t, text: t, custom: false }))
+                  .filter(it => !hidden[it.key]),
   }));
   Store.state.customCl.filter(c => !c.deleted).forEach(c => {
     let g = groups.find(x => x.cat === c.cat);
@@ -897,7 +969,9 @@ function renderChecklist() {
       return `<div class="cl-item${on ? ' done' : ''}" data-key="${esc(it.key)}">
         <div class="cl-box">${on ? '✓' : ''}</div>
         <div class="cl-text">${esc(it.text)}</div>
-        ${it.custom ? `<button class="cl-del" data-clr="${it.id}" title="刪除">✕</button>` : ''}
+        ${it.custom
+          ? `<button class="cl-del" data-clr="${it.id}" title="刪除">✕</button>`
+          : `<button class="cl-del" data-clhide="${esc(it.key)}" title="刪除">✕</button>`}
       </div>`;
     }).join('');
     const open = openCats.has(g.cat);
@@ -913,9 +987,24 @@ function renderChecklist() {
     </div>`;
   }).join('');
 
-  $('#checklistWrap').innerHTML = html;
+  const hiddenCount = Object.keys(Store.state.clHidden || {}).length;
+  $('#checklistWrap').innerHTML = html + (hiddenCount ? `
+    <button type="button" class="btn-tour" id="btnClRestore" style="margin:4px auto;display:block">
+      ↩︎ 還原 ${hiddenCount} 個被刪掉的預設項目</button>` : '');
   $('#clCount').textContent = `${done} / ${total}`;
   $('#clBar').style.width = total ? (done / total * 100) + '%' : '0%';
+
+  const restore = $('#btnClRestore');
+  if (restore) restore.addEventListener('click', async () => {
+    if (!confirm('把所有被刪掉的預設項目找回來？')) return;
+    await Store.commit(s => { s.clHidden = {}; });
+  });
+
+  $$('#checklistWrap [data-clhide]').forEach(b =>
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      await Store.commit(s => { s.clHidden[b.dataset.clhide] = true; });
+    }));
 
   $$('#checklistWrap .cl-cat').forEach(b =>
     b.addEventListener('click', () => toggleCat(b.dataset.cat)));

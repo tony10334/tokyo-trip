@@ -22,6 +22,8 @@ const Store = {
     expenses: [],       // {id, item, amount, payer, share:[], day, ts}
     checked: {},        // { '清單項目文字': true }
     customCl: [],       // { id, cat, text }
+    clHidden: {},       // { '分類::項目文字': true }  被刪掉的「預設」清單項目
+    customFood: [],     // { id, area, name, kind, price, where, open, note, ts, deleted? }
     itinEdits: [],      // 行程補丁,三種：
                         //   {id:'edit:<itemId>', full:{...}|undefined, removed?, ts}  改/刪(整筆覆蓋)
                         //   {id:<uid>, day, item:{...}, ts, deleted?}                 新增
@@ -143,6 +145,8 @@ function normalize(raw) {
     expenses: Array.isArray(o.expenses) ? o.expenses : [],
     checked: o.checked && typeof o.checked === 'object' ? o.checked : {},
     customCl: Array.isArray(o.customCl) ? o.customCl : [],
+    clHidden: o.clHidden && typeof o.clHidden === 'object' ? o.clHidden : {},
+    customFood: Array.isArray(o.customFood) ? o.customFood : [],
     itinEdits: Array.isArray(o.itinEdits) ? o.itinEdits : [],
     updatedAt: Number(o.updatedAt) || 0,
   };
@@ -162,8 +166,10 @@ function merge(remote, local) {
     rate: newer.rate || older.rate,
     expenses: mergeById(remote.expenses, local.expenses),
     customCl: mergeById(remote.customCl, local.customCl),
+    customFood: mergeById(remote.customFood, local.customFood),
     itinEdits: mergeById(remote.itinEdits, local.itinEdits),
     checked: mergeChecked(remote.checked, local.checked, remote.updatedAt, local.updatedAt),
+    clHidden: mergeChecked(remote.clHidden, local.clHidden, remote.updatedAt, local.updatedAt),
     updatedAt: Math.max(remote.updatedAt, local.updatedAt),
   };
 }
