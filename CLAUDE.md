@@ -50,6 +50,22 @@ js/app.js         畫面邏輯
 
 改行程內容 99% 只要動 `js/data.js`。
 
+### 行程編輯機制（2026/8 加入）
+
+使用者可以在網站上直接增刪改行程、拖曳排序。`data.js` 的 ITINERARY 是「底版」,
+所有人的改動存成補丁（`Store.state.itinEdits`,走 jsonblob 同步）,畫面 = 底版 + 補丁：
+
+- `{id:'edit:<itemId>', full:{...}, removed?, ts}` — 改（整筆覆蓋）/ 刪
+- `{id:<uid>, day, item:{...}, ts}` — 新增（item 可帶 geo:[lat,lng] 畫進地圖）
+- `{id:'order:d<day>', order:[itemId...], ts}` — 該天排序
+
+⚠️ **底版項目的 id 是「b:天數:標題」推出來的。改 data.js 裡任何一筆的 title,
+使用者對那筆的編輯就會脫鉤（畫面變回底版 + 使用者那筆變孤兒）。**
+要改底版文案就改 note/go/cost 等欄位,title 盡量不要動。
+
+第一次開站會跳「編輯教學」（localStorage `tokyo-trip-edit-tour-v1`）,
+之後從每天行程最下面的「❓ 編輯教學」可以再看。
+
 ### ITINERARY 每個項目的欄位
 
 ```js

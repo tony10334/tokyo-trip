@@ -265,6 +265,38 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   color: var(--ink-2); margin-left: 8px; white-space: nowrap;
   vertical-align: 1px;
 }
+
+/* --- 行程編輯 --- */
+.row-drag {
+  flex: 0 0 auto; cursor: grab; touch-action: none; user-select: none;
+  color: var(--ink-2); opacity: .45; font-size: 13px;
+  padding: 3px 2px 0 0; line-height: 1.2;
+}
+.row.dragging { opacity: .55; background: var(--rose); border-radius: 10px; }
+.row-menu {
+  flex: 0 0 auto; border: none; background: none; cursor: pointer;
+  color: var(--ink-2); opacity: .55; font-size: 17px; font-weight: 700;
+  padding: 0 2px; line-height: 1; align-self: flex-start;
+}
+.edit-row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+.btn-add-item {
+  flex: 1; padding: 12px; cursor: pointer; font-weight: 700; font-size: 13.5px;
+  color: var(--ink-2); background: var(--card);
+  border: 1.5px dashed var(--line); border-radius: var(--radius-sm);
+}
+.btn-tour {
+  border: none; background: none; cursor: pointer;
+  color: var(--ink-2); font-size: 12px; text-decoration: underline; white-space: nowrap;
+}
+.field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+#modalBody { max-height: 68vh; overflow-y: auto; }
+.tour-step { display: flex; gap: 12px; margin-bottom: 14px; font-size: 13.5px; line-height: 1.55; }
+.tour-step .tour-ico {
+  flex: 0 0 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 10px;
+  font-size: 16px; font-weight: 700;
+}
+.tour-step small { color: var(--ink-2); }
 .row-links { display: flex; gap: 8px; margin-top: 7px; flex-wrap: wrap; }
 .row-links a {
   font-size: 11.5px; font-weight: 700; text-decoration: none;

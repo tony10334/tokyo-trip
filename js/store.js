@@ -22,6 +22,10 @@ const Store = {
     expenses: [],       // {id, item, amount, payer, share:[], day, ts}
     checked: {},        // { '清單項目文字': true }
     customCl: [],       // { id, cat, text }
+    itinEdits: [],      // 行程補丁,三種：
+                        //   {id:'edit:<itemId>', full:{...}|undefined, removed?, ts}  改/刪(整筆覆蓋)
+                        //   {id:<uid>, day, item:{...}, ts, deleted?}                 新增
+                        //   {id:'order:d<day>', day, order:[itemId...], ts}           排序
     updatedAt: 0,
   },
 
@@ -130,6 +134,7 @@ function normalize(raw) {
     expenses: Array.isArray(o.expenses) ? o.expenses : [],
     checked: o.checked && typeof o.checked === 'object' ? o.checked : {},
     customCl: Array.isArray(o.customCl) ? o.customCl : [],
+    itinEdits: Array.isArray(o.itinEdits) ? o.itinEdits : [],
     updatedAt: Number(o.updatedAt) || 0,
   };
 }
@@ -148,6 +153,7 @@ function merge(remote, local) {
     rate: newer.rate || older.rate,
     expenses: mergeById(remote.expenses, local.expenses),
     customCl: mergeById(remote.customCl, local.customCl),
+    itinEdits: mergeById(remote.itinEdits, local.itinEdits),
     checked: mergeChecked(remote.checked, local.checked, remote.updatedAt, local.updatedAt),
     updatedAt: Math.max(remote.updatedAt, local.updatedAt),
   };

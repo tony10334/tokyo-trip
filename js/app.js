@@ -53,6 +53,9 @@ async function start() {
 
   Store.onChange(renderAll);
   await Store.init();
+
+  // 第一次打開跳編輯教學,之後從「❓ 編輯教學」隨時看
+  if (!localStorage.getItem(TOUR_KEY)) showEditTour(false);
 }
 
 function renderAll() {
@@ -157,9 +160,14 @@ function renderItinerary() {
         <h3>${esc(day.title)}</h3>
         <p>${esc(day.area || '')}</p>
       </div>
-      <div class="daycard-body">${day.items.map(rowHTML).join('')}</div>
+      <div class="daycard-body">${dayItems(day).map(rowHTML).join('')}</div>
+      <div class="edit-row">
+        <button type="button" class="btn-add-item" id="btnAddItem">＋ 新增行程</button>
+        <button type="button" class="btn-tour" id="btnEditTour">❓ 編輯教學</button>
+      </div>
     </article>`;
 
+  bindRowEditing(day);
   renderDayMap();
 
   /* --- 上一天 / 下一天 --- */
@@ -183,11 +191,12 @@ function proj(lat, lng) {
   ];
 }
 
-/** 這一天有座標的點,依行程順序 */
+/** 這一天有座標的點,依行程順序（含使用者新增、套用過補丁的項目） */
 function dayPins(day) {
-  return day.items
-    .filter(it => it.place && GEO[it.place])
-    .map(it => ({ title: it.title, place: it.place, time: it.time, xy: proj(...GEO[it.place]) }));
+  return dayItems(day)
+    .map(it => ({ it, g: (it.place && GEO[it.place]) || it.geo }))
+    .filter(x => x.it.place && x.g)
+    .map(x => ({ title: x.it.title, place: x.it.place, time: x.it.time, xy: proj(...x.g) }));
 }
 
 function renderDayMap() {
@@ -318,7 +327,8 @@ function dayRouteURL(pins) {
 function rowHTML(it) {
   const q = encodeURIComponent(it.place || '');
   return `
-    <div class="row">
+    <div class="row" data-id="${esc(it._id || '')}">
+      <span class="row-drag" title="按住上下拖曳可以改順序">⠿</span>
       <div class="row-time">${esc(it.time || '')}</div>
       <div class="row-ico">${TYPE_ICON[it.type] || '•'}</div>
       <div class="row-main">
@@ -333,7 +343,237 @@ function rowHTML(it) {
           ${it.link ? `<a target="_blank" rel="noopener" href="${esc(it.link)}">🔗 官網</a>` : ''}
         </div>` : ''}
       </div>
+      <button type="button" class="row-menu" data-menu="${esc(it._id || '')}" title="編輯 / 刪除">⋯</button>
     </div>`;
+}
+
+/* ------------------------------------------------------------
+   行程編輯（4 人共用,走 Store.itinEdits 補丁同步）
+   ------------------------------------------------------------
+   data.js 的行程是「底版」,所有人的增刪改存成補丁,畫面 = 底版 + 補丁。
+   底版項目的 id 由「天數 + 標題」推出來,所以之後改 data.js 的標題
+   會讓大家對這筆的編輯脫鉤 —— 盡量別改底版標題。
+   ------------------------------------------------------------ */
+
+/** 這一天套用補丁後的實際項目（每筆帶 _id） */
+function dayItems(day) {
+  const edits = new Map();      // itemId -> edit 紀錄（mergeById 已保證是最新一筆）
+  const adds = [];
+  let orderRec = null;
+  (Store.state.itinEdits || []).forEach(r => {
+    if (!r || !r.id) return;
+    if (r.id.startsWith('edit:')) edits.set(r.id.slice(5), r);
+    else if (r.id.startsWith('order:')) { if (r.id === 'order:d' + day.day) orderRec = r; }
+    else if (r.day === day.day && !r.deleted && r.item) adds.push(r);
+  });
+
+  const seen = {};
+  let items = day.items.map(it => {
+    let id = 'b:' + day.day + ':' + (it.title || '');
+    if (seen[id] != null) id += '#' + (++seen[id]);
+    else seen[id] = 1;
+    return { ...it, _id: id };
+  });
+  items = items.concat(adds.map(a => ({ ...a.item, _id: a.id })));
+
+  items = items.map(it => {
+    const e = edits.get(it._id);
+    if (!e) return it;
+    if (e.removed) return null;
+    return e.full ? { ...e.full, _id: it._id } : it;
+  }).filter(Boolean);
+
+  if (orderRec && Array.isArray(orderRec.order)) {
+    const pos = new Map(orderRec.order.map((id, i) => [id, i]));
+    items = items.map((it, i) => [it, pos.has(it._id) ? pos.get(it._id) : 1e6 + i])
+                 .sort((a, b) => a[1] - b[1]).map(x => x[0]);
+  }
+  return items;
+}
+
+/** 存一筆補丁：同 id 直接覆蓋（省得陣列越長越大） */
+async function putEdit(rec) {
+  await Store.commit(s => {
+    const i = s.itinEdits.findIndex(x => x.id === rec.id);
+    if (i >= 0) s.itinEdits[i] = rec; else s.itinEdits.push(rec);
+  });
+}
+
+function bindRowEditing(day) {
+  $$('#dayContent [data-menu]').forEach(b =>
+    b.addEventListener('click', () => openItemModal(day, b.dataset.menu)));
+  const add = $('#btnAddItem');
+  if (add) add.addEventListener('click', () => openItemModal(day, null));
+  const tour = $('#btnEditTour');
+  if (tour) tour.addEventListener('click', () => showEditTour(true));
+  $$('#dayContent .row-drag').forEach(h =>
+    h.addEventListener('pointerdown', e => startDrag(e, h.closest('.row'), day.day)));
+}
+
+/* --- 拖曳排序 --- */
+function startDrag(e, row, dayNo) {
+  e.preventDefault();
+  const body = row.parentElement;
+  row.classList.add('dragging');
+  const move = ev => {
+    ev.preventDefault();
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const over = el && el.closest ? el.closest('.row') : null;
+    if (over && over !== row && over.parentElement === body) {
+      const r = over.getBoundingClientRect();
+      body.insertBefore(row, ev.clientY < r.top + r.height / 2 ? over : over.nextSibling);
+    }
+  };
+  const up = async () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    row.classList.remove('dragging');
+    const order = [...body.querySelectorAll('.row')].map(r => r.dataset.id);
+    await putEdit({ id: 'order:d' + dayNo, day: dayNo, order, ts: Date.now() });
+    toast('順序已更新');
+  };
+  document.addEventListener('pointermove', move, { passive: false });
+  document.addEventListener('pointerup', up);
+}
+
+/* --- 新增 / 編輯表單 --- */
+const TYPE_OPTIONS = [
+  ['see', '⛩️ 景點'], ['food', '🍜 吃的'], ['shop', '🛍️ 購物'], ['move', '✈️ 移動'],
+  ['night', '🌃 夜景'], ['cafe', '☕ 咖啡'], ['stay', '🏨 住宿'], ['free', '🚶 自由'],
+];
+
+function openItemModal(day, itemId) {
+  const editing = itemId ? dayItems(day).find(x => x._id === itemId) : null;
+  const v = editing || {};
+  showModal(editing ? '編輯行程' : `新增行程 · Day ${day.day}`, `
+    <div class="field">
+      <label>🔗 貼上 Google 地圖連結,自動帶入名稱（可跳過）</label>
+      <input type="text" id="fUrl" placeholder="https://www.google.com/maps/place/…" inputmode="url">
+      <p class="hint" style="margin:4px 0 0">手機分享的短網址（maps.app.goo.gl）讀不到內容 ——
+        用瀏覽器開啟地點後複製網址列的完整網址,或直接在下面打名稱</p>
+    </div>
+    <div class="field-2col">
+      <div class="field"><label>時間</label>
+        <input type="text" id="fTime" value="${esc(v.time || '')}" placeholder="14:00 / 白天"></div>
+      <div class="field"><label>大概逛多久</label>
+        <input type="text" id="fDur" value="${esc(v.dur || '')}" placeholder="約 1 小時"></div>
+    </div>
+    <div class="field-2col">
+      <div class="field"><label>類型</label>
+        <select id="fType">${TYPE_OPTIONS.map(([k, l]) =>
+          `<option value="${k}"${(v.type || 'see') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label style="display:flex;align-items:center;gap:6px;margin-top:26px">
+        <input type="checkbox" id="fTodo" style="width:auto"${v.todo ? ' checked' : ''}> 標成「待填」</label></div>
+    </div>
+    <div class="field"><label>標題（必填）</label>
+      <input type="text" id="fTitle" value="${esc(v.title || '')}" placeholder="例：豐洲市場"></div>
+    <div class="field"><label>🚃 交通（怎麼去）</label>
+      <textarea id="fGo" rows="2" placeholder="上野站 →〔銀座線〕→ …">${esc(v.go || '')}</textarea></div>
+    <div class="field"><label>備註</label>
+      <textarea id="fNote" rows="3">${esc(v.note || '')}</textarea></div>
+    <div class="field"><label>🛍️ 購物備註</label>
+      <textarea id="fBuy" rows="2">${esc(v.buy || '')}</textarea></div>
+    <div class="field"><label>💰 花費</label>
+      <input type="text" id="fCost" value="${esc(v.cost || '')}" placeholder="門票 ¥1,000"></div>
+    <div class="field-2col">
+      <div class="field"><label>📍 地點名（開地圖用）</label>
+        <input type="text" id="fPlace" value="${esc(v.place || '')}"></div>
+      <div class="field"><label>🔗 官網連結</label>
+        <input type="text" id="fLink" value="${esc(v.link || '')}" inputmode="url"></div>
+    </div>
+    <input type="hidden" id="fGeo" value="${esc(v.geo ? JSON.stringify(v.geo) : '')}">
+    <div class="btn-row">
+      <button class="btn-primary" id="fSave" style="flex:1">儲存</button>
+      ${editing ? '<button class="btn-line" id="fDelete" style="color:#c0392b;border-color:#c0392b">刪除</button>' : ''}
+    </div>
+  `);
+
+  $('#fUrl').addEventListener('change', () => applyGmapsUrl($('#fUrl').value));
+  $('#fUrl').addEventListener('paste', () => setTimeout(() => applyGmapsUrl($('#fUrl').value), 50));
+
+  $('#fSave').addEventListener('click', async () => {
+    const item = {
+      time: $('#fTime').value.trim(),
+      type: $('#fType').value,
+      title: $('#fTitle').value.trim(),
+      dur: $('#fDur').value.trim() || undefined,
+      go: $('#fGo').value.trim() || undefined,
+      note: $('#fNote').value.trim() || undefined,
+      buy: $('#fBuy').value.trim() || undefined,
+      cost: $('#fCost').value.trim() || undefined,
+      place: $('#fPlace').value.trim() || undefined,
+      link: $('#fLink').value.trim() || undefined,
+      todo: $('#fTodo').checked || undefined,
+    };
+    try { const g = JSON.parse($('#fGeo').value); if (Array.isArray(g)) item.geo = g; } catch {}
+    if (!item.title) return toast('標題要填');
+    if (editing) {
+      await putEdit({ id: 'edit:' + itemId, full: item, ts: Date.now() });
+    } else {
+      await Store.commit(s => s.itinEdits.push({ id: uid(), day: day.day, item, ts: Date.now() }));
+    }
+    closeModal();
+    toast(editing ? '已更新' : '已加進 Day ' + day.day);
+  });
+
+  const del = $('#fDelete');
+  if (del) del.addEventListener('click', async () => {
+    if (!confirm('確定刪除「' + (v.title || '') + '」？4 個人都會看到它消失。')) return;
+    await putEdit({ id: 'edit:' + itemId, removed: true, ts: Date.now() });
+    closeModal();
+    toast('已刪除');
+  });
+}
+
+/** 解析 Google 地圖完整網址：/place/名稱/@緯度,經度 或 !3d..!4d.. */
+function applyGmapsUrl(raw) {
+  raw = (raw || '').trim();
+  if (!raw) return;
+  let u;
+  try { u = new URL(raw); } catch { return; }
+  if (/(^|\.)goo\.gl$/.test(u.hostname)) {
+    toast('短網址讀不到內容 —— 請用瀏覽器開啟後複製完整網址');
+    return;
+  }
+  const m = u.pathname.match(/\/place\/([^/]+)/);
+  const name = m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  const d3 = raw.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  const at = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const lat = d3 ? +d3[1] : at ? +at[1] : null;
+  const lng = d3 ? +d3[2] : at ? +at[2] : null;
+  if (name) {
+    if (!$('#fTitle').value.trim()) $('#fTitle').value = name;
+    $('#fPlace').value = name;
+  }
+  if (lat != null && lng != null) $('#fGeo').value = JSON.stringify([+lat.toFixed(4), +lng.toFixed(4)]);
+  if (name || lat != null) toast('已帶入' + (name ? '「' + name + '」' : '座標'));
+  else toast('這個網址裡沒有地點資訊,請確認是地點頁的完整網址');
+}
+
+/* --- 編輯教學 --- */
+const TOUR_KEY = 'tokyo-trip-edit-tour-v1';
+function showEditTour(manual) {
+  localStorage.setItem(TOUR_KEY, '1');
+  showModal('📝 行程可以自己改了', `
+    <div class="tour">
+      <div class="tour-step"><span class="tour-ico">⋯</span>
+        <div><b>編輯 / 刪除</b><br>每筆行程右邊的「⋯」,點開就能改內容或刪掉</div></div>
+      <div class="tour-step"><span class="tour-ico">＋</span>
+        <div><b>新增行程</b><br>每天最下面的「＋ 新增行程」</div></div>
+      <div class="tour-step"><span class="tour-ico">🔗</span>
+        <div><b>貼地圖連結自動帶入</b><br>新增時把 Google 地圖的<b>完整網址</b>貼進最上面那格,
+          名稱和座標自動填好。<br><small>⚠️ 手機分享的短網址不行 ——
+          用瀏覽器開啟地點後複製網址列,或直接打店名</small></div></div>
+      <div class="tour-step"><span class="tour-ico">⠿</span>
+        <div><b>拖曳排序</b><br>按住每筆左邊的「⠿」上下拖,就能改順序</div></div>
+      <div class="tour-step"><span class="tour-ico">☁️</span>
+        <div><b>四個人同步</b><br>改動會同步給所有人（15 秒內）;沒網路照樣能改,回線自動補傳</div></div>
+      <div class="tour-step"><span class="tour-ico">❓</span>
+        <div><b>忘記了?</b><br>每天行程最下面有「❓ 編輯教學」,隨時點開複習</div></div>
+    </div>
+    <button class="btn-primary" id="tourOk" style="width:100%">開始使用</button>
+  `);
+  $('#tourOk').addEventListener('click', closeModal);
 }
 
 /* ------------------------------------------------------------
