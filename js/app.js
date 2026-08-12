@@ -322,7 +322,7 @@ function rowHTML(it) {
       <div class="row-time">${esc(it.time || '')}</div>
       <div class="row-ico">${TYPE_ICON[it.type] || '•'}</div>
       <div class="row-main">
-        <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</div>
+        <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}${it.dur ? `<span class="dur">⏱ ${esc(it.dur)}</span>` : ''}</div>
         ${it.go ? `<div class="row-go">🚃 ${esc(it.go)}</div>` : ''}
         ${it.note ? `<div class="row-note">${esc(it.note)}</div>` : ''}
         ${it.buy ? `<div class="row-buy">🛍️ ${esc(it.buy)}</div>` : ''}
