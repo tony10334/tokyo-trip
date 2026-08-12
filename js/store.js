@@ -211,6 +211,7 @@ const CloudBackend = {
   base: 'https://textdb.online',
   get _id() { return roomId(); },
   async load() {
+    if (!this._id) throw new Error('沒有房號');
     const r = await fetch(`${this.base}/${encodeURIComponent(this._id)}`, { cache: 'no-store' });
     if (!r.ok) { const e = new Error('讀取失敗 ' + r.status); e.status = r.status; throw e; }
     const t = (await r.text()).trim();
@@ -218,6 +219,7 @@ const CloudBackend = {
     try { return JSON.parse(t); } catch { return null; }
   },
   async save(v) {
+    if (!this._id) throw new Error('沒有房號');
     const json = JSON.stringify(v);
     if (json.length > 190000) throw new Error('資料量超過免費空間上限(20萬字),先匯出備份並清掉舊支出');
     // ⚠️ /update 結尾不能加斜線：/update/ 會觸發轉址,POST 的資料會在轉址時掉光
