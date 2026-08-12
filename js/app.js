@@ -77,9 +77,16 @@ function renderBrand() {
   const pill = $('#tripPill');
   const st = Store.status;
   if (st.mode === 'cloud') {
-    pill.textContent = st.ok ? '4人共享中' : (st.msg || '離線中');
-    pill.classList.toggle('is-cloud', st.ok);
-    pill.classList.remove('is-cta');
+    if (st.code === 404) {
+      // 房間被雲端清掉了 —— 點一下去「資訊」分頁重建
+      pill.textContent = '房間失效,點我重建 ›';
+      pill.classList.remove('is-cloud');
+      pill.classList.add('is-cta');
+    } else {
+      pill.textContent = st.ok ? '4人共享中' : (st.msg || '離線中');
+      pill.classList.toggle('is-cloud', st.ok);
+      pill.classList.remove('is-cta');
+    }
   } else if (CONFIG.mode === 'shared') {
     // 還沒開房 —— 點一下直接跳去開
     pill.textContent = '尚未共享 ›';
@@ -579,8 +586,23 @@ function showEditTour(manual) {
 /* ------------------------------------------------------------
    美食
    ------------------------------------------------------------ */
+const FOOD_AREA_KEY = 'tokyo-trip-food-area';
 function renderFood() {
-  $('#foodWrap').innerHTML = FOOD.map(g => `
+  let sel = localStorage.getItem(FOOD_AREA_KEY) || '';
+  if (sel && !FOOD.some(g => g.area === sel)) sel = '';
+  const shown = sel ? FOOD.filter(g => g.area === sel) : FOOD;
+
+  $('#foodWrap').innerHTML = `
+    <div class="card food-filter">
+      <div class="field" style="margin:0">
+        <label>📍 選地點,看那附近有什麼吃的</label>
+        <select id="foodAreaSel">
+          <option value="">全部地點（${FOOD.length} 區）</option>
+          ${FOOD.map(g => `<option value="${esc(g.area)}"${g.area === sel ? ' selected' : ''}>${esc(g.area)}　·　${esc(g.when)}</option>`).join('')}
+        </select>
+      </div>
+    </div>` +
+    shown.map(g => `
     <div class="card food-card${g.far ? ' far' : ''}">
       <div class="food-head">
         <h3>${esc(g.area)}</h3>
@@ -588,6 +610,12 @@ function renderFood() {
       </div>
       ${g.shops.map(shopHTML).join('')}
     </div>`).join('');
+
+  $('#foodAreaSel').addEventListener('change', e => {
+    localStorage.setItem(FOOD_AREA_KEY, e.target.value);
+    renderFood();
+    window.scrollTo({ top: 0 });
+  });
 }
 
 function shopHTML(s) {
@@ -979,6 +1007,34 @@ function renderShare() {
       const m = code.match(/room=([\w-]+)/);
       setRoomId((m ? m[1] : code).trim());
       location.reload();
+    });
+    return;
+  }
+
+  /* --- 房間失效（雲端 404）--- */
+  if (Store.status.code === 404) {
+    box.innerHTML = `
+      <p class="hint">⚠️ <b>共享房間失效了。</b>免費雲端空間太久沒人開啟會自動清掉,
+        大家手機裡的資料都還在,不會不見 —— 重建一個新房間就好。</p>
+      <p class="hint"><b>誰的資料最新、最齊,就用誰的手機按這顆按鈕</b>,
+        然後把新網址丟到群組給其他人。</p>
+      <div class="btn-row">
+        <button class="btn-line" id="btnRebuildRoom"
+          style="background:var(--crimson);color:#fff;border-color:var(--crimson)">用這台的資料重建房間</button>
+      </div>
+      <p class="hint" style="margin-top:12px">重建後網址會變,舊的分享網址就不能用了。
+        其他人打開新網址後,他們手機裡的支出、勾選也會自動併進來,不會被蓋掉。</p>`;
+    $('#btnRebuildRoom').addEventListener('click', async () => {
+      const btn = $('#btnRebuildRoom');
+      btn.disabled = true; btn.textContent = '重建中…';
+      try {
+        await CloudBackend.createRoom(Store.state);
+        toast('重建成功,重新載入中…');
+        setTimeout(() => location.reload(), 600);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = '用這台的資料重建房間';
+        toast('重建失敗：' + err.message);
+      }
     });
     return;
   }

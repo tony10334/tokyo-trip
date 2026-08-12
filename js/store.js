@@ -43,7 +43,8 @@ const Store = {
       Store.status = { mode: this._backend.name, ok: true };
     } catch (err) {
       console.warn('讀取失敗,改用本機資料', err);
-      Store.status = { mode: this._backend.name, ok: false, msg: '連線失敗' };
+      Store.status = { mode: this._backend.name, ok: false,
+        msg: err.status === 404 ? '房間失效' : '連線失敗', code: err.status };
       remote = LocalBackend.readRaw();
     }
     // 共享模式：把這台裝置本來就有的資料併進雲端資料,不要直接蓋掉
@@ -78,7 +79,8 @@ const Store = {
         this._emit();
       } catch (err) {
         console.warn('同步失敗,資料先存在本機', err);
-        Store.status = { mode: this._backend.name, ok: false, msg: '同步失敗' };
+        Store.status = { mode: this._backend.name, ok: false,
+          msg: err.status === 404 ? '房間失效' : '同步失敗', code: err.status };
         this._emit();
       }
     }
@@ -94,7 +96,8 @@ const Store = {
       LocalBackend.writeRaw(this.state);
       this._emit();
     } catch (err) {
-      Store.status = { mode: this._backend.name, ok: false, msg: '連線失敗' };
+      Store.status = { mode: this._backend.name, ok: false,
+        msg: err.status === 404 ? '房間失效' : '連線失敗', code: err.status };
       this._emit();
     }
   },
@@ -198,7 +201,7 @@ const CloudBackend = {
   get _id() { return roomId(); },
   async load() {
     const r = await fetch(`${this.base}/${this._id}`, { cache: 'no-store' });
-    if (!r.ok) throw new Error('讀取失敗 ' + r.status);
+    if (!r.ok) { const e = new Error('讀取失敗 ' + r.status); e.status = r.status; throw e; }
     return r.json();
   },
   async save(v) {
@@ -207,7 +210,7 @@ const CloudBackend = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(v),
     });
-    if (!r.ok) throw new Error('寫入失敗 ' + r.status);
+    if (!r.ok) { const e = new Error('寫入失敗 ' + r.status); e.status = r.status; throw e; }
   },
   /** 第一次開房：把目前資料丟上去,拿到共享碼 */
   async createRoom(v) {
