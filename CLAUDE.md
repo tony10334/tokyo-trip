@@ -1,6 +1,9 @@
 # 專案脈絡
 
 東京 7日6夜（2026/12/23–12/29）4 人旅遊手冊。純靜態網站,部署在 GitHub Pages。
+2026/9 起行程以使用者的「東京_逐日行程_定案版.xlsx」為準整份導入
+（住 Grids Tokyo Ueno;兩組分批抵達;富士山團行李直接帶上車）。
+「退稅 · 海關」資訊段被清空待補 —— 等使用者貼新制連結後再依連結補回。
 
 - 線上網址：https://tony10334.github.io/tokyo-trip/
 - Repo：https://github.com/tony10334/tokyo-trip
