@@ -248,7 +248,7 @@ function renderOverview() {
 
   $('#dayMap').innerHTML = '';
   $('#dayContent').innerHTML = `
-    <p class="ov-hint">← 左右滑看別天 · 點一天進去看細節 →</p>
+    <p class="ov-hint">一頁比對七天：上下捲、左右滑 · 點天標題進單日</p>
     <div class="alldays">` +
     ITINERARY.map(d => {
       const dt = dayDate(d.day);

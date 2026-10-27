@@ -708,44 +708,63 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .confirm-msg { font-size: 14.5px; line-height: 1.6; margin: 0 0 14px; white-space: pre-wrap; }
 .confirm-box .btn-row { flex-wrap: nowrap; }
 
-/* ============ 行程總覽（全部天數,左右滑換天） ============ */
+/* ============ 行程總覽（週曆板:一屏多天、上下左右自由捲,方便比對討論） ============ */
 .alldays {
-  display: flex; gap: 12px;
+  display: flex; gap: 10px; align-items: flex-start;
   overflow-x: auto; overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
   margin: 0 -14px; padding: 2px 14px 10px;
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
 .allday {
-  flex: 0 0 min(84vw, 320px); scroll-snap-align: center;
+  flex: 0 0 176px;
   background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  overflow: hidden; align-self: flex-start;
+  border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .allday-head {
   display: block; width: 100%; text-align: left; border: 0; cursor: pointer;
   background:
     radial-gradient(3px 3px at 87% 24%, rgba(243, 194, 104, .85) 40%, transparent 70%),
-    radial-gradient(3px 3px at 94% 66%, rgba(243, 194, 104, .5) 40%, transparent 70%),
     linear-gradient(135deg, #1d2548, #342045);
   border-bottom: 1px solid rgba(243, 194, 104, .25);
-  padding: 11px 14px 10px; color: #fff;
+  padding: 9px 11px 8px; color: #fff;
 }
-.allday-head .dc-label { font-size: 11px; }
-.allday-head h4 { margin: 2px 0 0; font-size: 15.5px; font-weight: 800; letter-spacing: -.01em; }
-.allday-head p { margin: 1px 0 0; font-size: 11.5px; color: rgba(237, 240, 249, .66); }
+.allday-head .dc-label {
+  font-size: 11px; letter-spacing: .06em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.allday-head h4 {
+  margin: 2px 0 0; font-size: 12.5px; font-weight: 800; letter-spacing: 0;
+  line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.allday-head p {
+  margin: 1px 0 0; font-size: 11px; color: rgba(237, 240, 249, .66);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .allday.is-today { border-color: rgba(243, 194, 104, .45); }
 .allday.is-today .dc-label::after { content: ' · 今天'; color: var(--gold); }
-.allday-body { padding: 2px 14px 10px; }
+.allday-body { padding: 1px 10px 6px; }
 .ov-row {
-  display: flex; gap: 8px; align-items: flex-start;
-  padding: 8px 0; border-bottom: 1px solid var(--line);
-  font-size: 13px; line-height: 1.5;
+  display: flex; gap: 6px; align-items: flex-start;
+  padding: 6px 0; border-bottom: 1px solid var(--line);
+  font-size: 11.5px; line-height: 1.45;
 }
 .ov-row:last-child { border-bottom: 0; }
-.ov-time { flex: 0 0 36px; font-size: 11.5px; color: var(--ink-2); padding-top: 1.5px; }
-.ov-ico { flex: 0 0 auto; font-size: 13.5px; line-height: 1.4; }
-.ov-title { flex: 1; min-width: 0; font-weight: 600; }
+.ov-time { flex: 0 0 30px; font-size: 11px; color: var(--ink-2); padding-top: 1px; }
+.ov-ico { flex: 0 0 auto; font-size: 12px; line-height: 1.4; }
+.ov-title {
+  flex: 1; min-width: 0; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ov-title .badge { font-size: 10px; padding: 0 6px; margin-left: 4px; }
+/* 寬螢幕:總覽板衝出 760px 內文寬,盡量讓七天同屏並排 */
+@media (min-width: 860px) {
+  .alldays {
+    margin: 0 calc(50% - 50vw + 10px);
+    padding: 2px calc(50vw - 50% + 4px) 10px;
+  }
+}
 .ov-row.ov-now {
   margin: 0 -8px; padding-left: 8px; padding-right: 8px;
   background: linear-gradient(90deg, rgba(243, 194, 104, .12), transparent 75%);
