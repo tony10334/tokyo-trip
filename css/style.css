@@ -1,32 +1,34 @@
 /* ============================================================
    東京 7日6夜 —— 樣式
-   暖米色底 · 白卡片 · 深緋紅重點色
+   冬夜點燈風：深夜藍底 · 燈串金 · 緋紅燈光
+   （2026/10 整份改版,之前是暖米色淺色版）
    ============================================================ */
 
 :root {
-  --crimson: #a3123c;      /* 主色：深緋紅 */
-  --red: #e0113c;          /* 強調紅 */
-  --rose: #fdeef1;         /* 日卡頭底色 */
-  --rose-line: #f7dfe4;
+  --crimson: #e8536f;      /* 主色：點燈緋紅 */
+  --red: #ff6b87;          /* 強調紅 */
+  --gold: #f3c268;         /* 燈串金 */
+  --rose: rgba(232, 83, 111, .13);   /* 緋紅底色（膠囊、選中） */
+  --rose-line: rgba(232, 83, 111, .34);
 
-  --bg: #f3f0ea;           /* 暖米色背景 */
-  --card: #ffffff;
-  --card-2: #faf8f5;
+  --bg: #0b101e;           /* 深夜藍背景 */
+  --card: #141b2d;
+  --card-2: #1b2338;
 
-  --ink: #1c1a19;
-  --ink-2: #7d7671;
-  --ink-3: #a9a29c;
-  --line: #ebe6df;
+  --ink: #edf0f9;
+  --ink-2: #a2abc6;
+  --ink-3: #8791b4;
+  --line: #262f48;
 
-  --ok: #2e8b64;
+  --ok: #5ad19a;
   --radius: 20px;
   --radius-sm: 14px;
-  --shadow: 0 1px 2px rgba(70,55,40,.04), 0 10px 30px rgba(70,55,40,.06);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .35);
   --tabbar-h: 66px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; color-scheme: dark; }
 
 body {
   margin: 0;
@@ -39,6 +41,23 @@ body {
   padding-bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
 }
 
+/* 夜空：星點 + 遠方街燈的光暈（fixed 畫在 body::before,手機才不會跟著捲動跳動） */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(2px 2px at 12% 16%, rgba(243, 194, 104, .85) 40%, transparent 70%),
+    radial-gradient(2px 2px at 86% 9%,  rgba(255, 255, 255, .5)  40%, transparent 70%),
+    radial-gradient(1.5px 1.5px at 64% 26%, rgba(243, 194, 104, .55) 40%, transparent 70%),
+    radial-gradient(2px 2px at 28% 48%, rgba(255, 255, 255, .25) 40%, transparent 70%),
+    radial-gradient(1.5px 1.5px at 79% 64%, rgba(243, 194, 104, .4) 40%, transparent 70%),
+    radial-gradient(2px 2px at 44% 82%, rgba(255, 255, 255, .2) 40%, transparent 70%),
+    radial-gradient(1.5px 1.5px at 8% 76%, rgba(255, 255, 255, .22) 40%, transparent 70%),
+    radial-gradient(900px 520px at 85% -8%, rgba(96, 78, 172, .3), transparent 70%),
+    radial-gradient(760px 460px at 6% -4%, rgba(232, 83, 111, .15), transparent 70%),
+    linear-gradient(180deg, #121a35 0%, var(--bg) 55%);
+}
+
 h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -.02em; }
 button, input, select { font: inherit; color: inherit; }
 ::placeholder { color: var(--ink-3); }
@@ -46,7 +65,9 @@ button, input, select { font: inherit; color: inherit; }
 /* ============ 頂部品牌條 ============ */
 .topbar {
   position: sticky; top: 0; z-index: 20;
-  background: var(--bg);
+  background: rgba(11, 16, 30, .78);
+  backdrop-filter: saturate(1.3) blur(14px);
+  -webkit-backdrop-filter: saturate(1.3) blur(14px);
   padding: calc(10px + env(safe-area-inset-top)) 14px 8px;
 }
 .brand {
@@ -60,22 +81,28 @@ button, input, select { font: inherit; color: inherit; }
 }
 .brand-logo {
   flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
-  background: var(--crimson); color: #fff;
+  background: linear-gradient(145deg, #f0657f, #b32a50);
+  color: #fff;
   display: grid; place-items: center; font-size: 19px; line-height: 1;
+  box-shadow: 0 0 14px rgba(232, 83, 111, .45);
 }
 .brand-text { flex: 1; min-width: 0; }
 .brand-text h1 { font-size: 17px; line-height: 1.3; }
-.brand-text h1 em { font-style: normal; color: var(--red); }
+.brand-text h1 em { font-style: normal; color: var(--gold); }
 .brand-text p { margin: 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
 .brand-pill {
   flex: 0 0 auto; font-size: 11px; color: var(--ink-2);
   background: var(--card-2); border: 1px solid var(--line);
   padding: 4px 11px; border-radius: 999px; white-space: nowrap;
 }
-.brand-pill.is-cloud { color: var(--ok); border-color: #cfe6da; background: #f1f9f5; }
+.brand-pill.is-cloud {
+  color: var(--ok);
+  border-color: rgba(90, 209, 154, .35);
+  background: rgba(90, 209, 154, .1);
+}
 .brand-pill.is-cta {
-  color: var(--crimson); border-color: var(--rose-line);
-  background: var(--rose); cursor: pointer; font-weight: 700;
+  color: var(--gold); border-color: rgba(243, 194, 104, .4);
+  background: rgba(243, 194, 104, .12); cursor: pointer; font-weight: 700;
 }
 
 /* ============ 版面 ============ */
@@ -88,6 +115,17 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   color: var(--ink-3); text-transform: uppercase;
 }
 .page-title { font-size: 27px; margin-top: 2px; }
+
+/* 出發倒數 / 旅途中 膠囊（行程頁標題下方） */
+.count-chip {
+  display: inline-block; margin-top: 8px;
+  font-size: 12px; font-weight: 800; letter-spacing: .02em;
+  color: var(--gold);
+  background: rgba(243, 194, 104, .1);
+  border: 1px solid rgba(243, 194, 104, .32);
+  border-radius: 999px; padding: 3px 13px;
+}
+.count-chip:empty { display: none; }
 
 .card {
   background: var(--card);
@@ -114,8 +152,9 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .empty { text-align: center; color: var(--ink-3); font-size: 13px; padding: 20px 0; }
 
 /* ============ 行程：日期選擇 ============ */
-/* 日期選擇：整排剛好填滿寬度的日曆條,不需要橫向捲動 */
+/* 整排剛好填滿寬度的日曆條;捲動時吸在頂欄下面(--topbar-h 由 app.js 量好塞進來) */
 .daybar {
+  position: sticky; top: var(--topbar-h, 72px); z-index: 15;
   display: flex; gap: 5px; margin-bottom: 13px;
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius-sm); padding: 5px;
@@ -132,8 +171,12 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .daybtn .dw { font-size: 10px; font-weight: 700; color: var(--ink-3); }
 .daybtn .dn { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
 .daybtn:active { background: var(--card-2); }
-.daybtn.active { background: var(--crimson); color: #fff; }
-.daybtn.active .dw { color: rgba(255,255,255,.72); }
+.daybtn.active {
+  background: linear-gradient(160deg, #f0657f, #c02e55);
+  color: #fff;
+  box-shadow: 0 2px 14px rgba(232, 83, 111, .45);
+}
+.daybtn.active .dw { color: rgba(255, 255, 255, .78); }
 
 /* ============ 行程：位置示意圖 ============ */
 .map-card { padding: 0; overflow: hidden; margin-bottom: 13px; }
@@ -146,7 +189,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .map-head:active { background: var(--card-2); }
 .map-title { font-size: 13.5px; font-weight: 800; flex: 1; }
 .map-count {
-  font-size: 11.5px; font-weight: 700; color: var(--crimson);
+  font-size: 11.5px; font-weight: 700; color: var(--red);
   background: var(--rose); border-radius: 999px; padding: 2px 9px;
 }
 .map-chev { font-size: 11px; color: var(--ink-3); width: 12px; text-align: center; }
@@ -157,25 +200,27 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 
 .map-btn {
   font-size: 11.5px; font-weight: 700; text-decoration: none;
-  color: var(--crimson); background: var(--rose);
+  color: var(--red); background: var(--rose);
   border: 1px solid var(--rose-line); border-radius: 999px; padding: 4px 11px;
   white-space: nowrap;
 }
-.map-svg { display: block; width: 100%; height: auto; background: var(--card-2); }
+.map-svg { display: block; width: 100%; height: auto; background: #10172a; }
 .map-foot {
   font-size: 11px; color: var(--ink-3); padding: 9px 14px 12px;
   border-top: 1px solid var(--line); line-height: 1.6;
 }
 .map-empty { padding: 26px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
 
-.mp-bay { fill: #dfe9f0; }
-.mp-bay-t { fill: #93a9b8; font-size: 26px; font-weight: 700; }
-.mp-loop { fill: none; stroke: #c8bfb4; stroke-width: 5; stroke-dasharray: 2 12; stroke-linecap: round; }
-.mp-loop-t { fill: #b3a99d; font-size: 25px; font-weight: 700; }
-.mp-stn { fill: #fff; stroke: #b3a99d; stroke-width: 3; }
-.mp-stn-t { fill: #8e857b; font-size: 24px; font-weight: 700; }
-.mp-other { fill: #cfc7bd; }
+/* 夜色地圖配色 */
+.mp-bay { fill: #1a2740; }
+.mp-bay-t { fill: #5d6f96; font-size: 26px; font-weight: 700; }
+.mp-loop { fill: none; stroke: #39415c; stroke-width: 5; stroke-dasharray: 2 12; stroke-linecap: round; }
+.mp-loop-t { fill: #7c86a4; font-size: 25px; font-weight: 700; }
+.mp-stn { fill: #141b2d; stroke: #4a5472; stroke-width: 3; }
+.mp-stn-t { fill: #7c86a4; font-size: 24px; font-weight: 700; }
+.mp-other { fill: #39415c; }
 .mp-num { fill: #fff; font-size: 26px; font-weight: 800; text-anchor: middle; }
+.mp-lbl { fill: #edf0f9; stroke: #141b2d; }
 
 .mp-legend { padding: 10px 14px 4px; display: grid; gap: 2px; }
 .mp-leg {
@@ -193,33 +238,31 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .mp-leg-t { flex: 1; font-size: 13.5px; font-weight: 600; }
 .mp-leg-time { font-size: 11.5px; color: var(--ink-3); font-weight: 700; white-space: nowrap; }
 
-@media (prefers-color-scheme: dark) {
-  .mp-bay { fill: #1f2c34; }
-  .mp-bay-t { fill: #4a606e; }
-  .mp-loop { stroke: #4a443e; }
-  .mp-loop-t, .mp-stn-t { fill: #6d655d; }
-  .mp-stn { fill: #1d1b1a; stroke: #4a443e; }
-  .mp-other { fill: #4a443e; }
-  .mp-lbl { fill: #f0eeec; stroke: #1d1b1a; }
-}
-
 /* ============ 行程：日卡 ============ */
 .daycard {
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
   overflow: hidden;
 }
+/* 日卡頭：夜空漸層 + 燈串光點 */
 .daycard-head {
-  background: var(--rose);
-  border-bottom: 1px solid var(--rose-line);
+  background:
+    radial-gradient(4px 4px at 15% 24%, rgba(243, 194, 104, .95) 40%, transparent 70%),
+    radial-gradient(3px 3px at 34% 66%, rgba(243, 194, 104, .7) 40%, transparent 70%),
+    radial-gradient(5px 5px at 54% 18%, rgba(255, 166, 186, .8) 40%, transparent 70%),
+    radial-gradient(3px 3px at 71% 58%, rgba(243, 194, 104, .75) 40%, transparent 70%),
+    radial-gradient(4px 4px at 88% 28%, rgba(158, 183, 255, .75) 40%, transparent 70%),
+    radial-gradient(120% 150% at 88% 118%, rgba(232, 83, 111, .4), transparent 62%),
+    linear-gradient(135deg, #1d2548 0%, #2c2042 58%, #3b2342 100%);
+  border-bottom: 1px solid rgba(243, 194, 104, .25);
   padding: 16px 18px 15px;
 }
 .dc-label {
   font-size: 10.5px; font-weight: 800; letter-spacing: .14em;
-  color: var(--red); text-transform: uppercase;
+  color: var(--gold); text-transform: uppercase;
 }
-.daycard-head h3 { font-size: 22px; margin-top: 3px; }
-.daycard-head p { margin: 1px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.daycard-head h3 { font-size: 22px; margin-top: 3px; color: #fff; }
+.daycard-head p { margin: 1px 0 0; font-size: 12.5px; color: rgba(237, 240, 249, .66); }
 
 .daycard-body { padding: 4px 18px 8px; }
 .row {
@@ -236,23 +279,19 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .row-title { font-size: 15px; font-weight: 700; line-height: 1.5; }
 .row-note { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; white-space: pre-wrap; }
 .row-go {
-  font-size: 12px; color: var(--crimson); margin-top: 5px;
+  font-size: 12px; color: #f1a9b8; margin-top: 5px;
   background: var(--card-2); border: 1px solid var(--line);
   border-radius: 9px; padding: 5px 9px; line-height: 1.55;
 }
 .row-buy {
-  font-size: 12px; color: #1f6f52; margin-top: 5px;
-  background: #f1f9f5; border: 1px solid #cfe6da;
+  font-size: 12px; color: #7ed3ab; margin-top: 5px;
+  background: #14281e; border: 1px solid #23503a;
   border-radius: 9px; padding: 5px 9px; line-height: 1.6;
 }
 .row-cost {
-  font-size: 12px; color: #8a5a00; margin-top: 5px;
-  background: #fdf6e6; border: 1px solid #ecd9ac;
+  font-size: 12px; color: #ecc06a; margin-top: 5px;
+  background: #2a2213; border: 1px solid #4a3c1d;
   border-radius: 9px; padding: 5px 9px; line-height: 1.6;
-}
-@media (prefers-color-scheme: dark) {
-  .row-buy { color: #7ed3ab; background: #16281f; border-color: #244734; }
-  .row-cost { color: #e8c06a; background: #2a2213; border-color: #4a3c1d; }
 }
 .badge {
   display: inline-block; font-size: 10.5px; font-weight: 700;
@@ -264,6 +303,19 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   display: inline-block; font-size: 11px; font-weight: 600;
   color: var(--ink-2); margin-left: 8px; white-space: nowrap;
   vertical-align: 1px;
+}
+
+/* 旅途中,今天「現在走到哪一筆」的點燈標記 */
+.row-now {
+  margin: 0 -12px; padding-left: 12px; padding-right: 12px;
+  background: linear-gradient(90deg, rgba(243, 194, 104, .12), transparent 72%);
+  border-radius: 12px;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.row-now .row-time { color: var(--gold); font-weight: 800; }
+.row-now .row-time::after {
+  content: '現在'; display: block;
+  font-size: 9px; letter-spacing: .14em; font-weight: 800; color: var(--gold);
 }
 
 /* --- 行程編輯 --- */
@@ -300,7 +352,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .row-links { display: flex; gap: 8px; margin-top: 7px; flex-wrap: wrap; }
 .row-links a {
   font-size: 11.5px; font-weight: 700; text-decoration: none;
-  color: var(--crimson); background: var(--rose);
+  color: #ffa9bb; background: var(--rose);
   border: 1px solid var(--rose-line); border-radius: 999px;
   padding: 2px 10px;
 }
@@ -327,7 +379,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 }
 .field textarea { resize: vertical; min-height: 44px; }
 .field input:focus, .field select:focus, .field textarea:focus {
-  border-color: var(--crimson); background: var(--card);
+  border-color: var(--gold); background: var(--card);
 }
 .field-row { display: flex; gap: 10px; }
 .field-row .field { flex: 1; min-width: 0; }
@@ -341,8 +393,10 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 
 .btn-primary {
   width: 100%; padding: 13px; border: 0; border-radius: 12px;
-  background: var(--crimson); color: #fff; font-weight: 700; cursor: pointer;
+  background: linear-gradient(160deg, #f0657f, #c02e55);
+  color: #fff; font-weight: 700; cursor: pointer;
   letter-spacing: .02em;
+  box-shadow: 0 2px 14px rgba(232, 83, 111, .3);
 }
 .btn-primary:active { opacity: .85; }
 .btn-ghost {
@@ -354,7 +408,11 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: var(--card-2); border: 1px solid var(--line);
   font-weight: 700; font-size: 13px; white-space: nowrap;
 }
-.btn-line.danger { color: #b3243c; border-color: #eccdd4; background: #fdf6f7; }
+.btn-line.danger {
+  color: #ff8296;
+  border-color: rgba(255, 107, 135, .35);
+  background: rgba(255, 107, 135, .08);
+}
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .mini {
   background: none; border: 0; color: var(--red);
@@ -364,12 +422,17 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 /* ============ 美食 ============ */
 .food-card { padding: 0; overflow: hidden; }
 .food-head {
-  background: var(--rose); border-bottom: 1px solid var(--rose-line);
+  background:
+    radial-gradient(3px 3px at 22% 35%, rgba(243, 194, 104, .8) 40%, transparent 70%),
+    radial-gradient(3px 3px at 78% 60%, rgba(243, 194, 104, .55) 40%, transparent 70%),
+    linear-gradient(120deg, #1d2548, #342045);
+  border-bottom: 1px solid rgba(243, 194, 104, .22);
   padding: 13px 16px;
 }
-.food-head h3 { font-size: 15px; }
-.food-when { font-size: 11.5px; color: var(--crimson); font-weight: 700; }
+.food-head h3 { color: #fff; font-size: 15px; }
+.food-when { font-size: 11.5px; color: var(--gold); font-weight: 700; }
 .food-card.far .food-head { background: var(--card-2); border-bottom-color: var(--line); }
+.food-card.far .food-head h3 { color: var(--ink); }
 .food-card.far .food-when { color: var(--ink-2); }
 
 .shop { padding: 14px 16px; border-bottom: 1px solid var(--line); }
@@ -380,14 +443,14 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   text-decoration: none; border-bottom: 2px solid var(--rose-line);
 }
 .shop-kind {
-  font-size: 10.5px; font-weight: 700; color: var(--crimson);
+  font-size: 10.5px; font-weight: 700; color: #ffa9bb;
   background: var(--rose); border-radius: 999px; padding: 1px 9px;
 }
 .shop-meta {
   display: flex; gap: 12px; flex-wrap: wrap;
   font-size: 12px; color: var(--ink-2); margin-top: 5px;
 }
-.shop-meta .star { color: var(--warn, #d9822b); font-weight: 700; }
+.shop-meta .star { color: var(--gold); font-weight: 700; }
 .shop-where, .shop-open {
   font-size: 12.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.6;
 }
@@ -398,7 +461,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 }
 .shop-link {
   display: inline-block; margin-top: 8px; font-size: 11.5px; font-weight: 700;
-  color: var(--crimson); background: var(--rose); border: 1px solid var(--rose-line);
+  color: #ffa9bb; background: var(--rose); border: 1px solid var(--rose-line);
   border-radius: 999px; padding: 2px 10px; text-decoration: none;
 }
 
@@ -421,7 +484,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: var(--rose); border: 1px solid var(--rose-line);
   border-radius: 12px; padding: 10px 13px; font-size: 14px;
 }
-.settle b { color: var(--crimson); font-weight: 700; }
+.settle b { color: #ffa9bb; font-weight: 700; }
 .settle .arrow { color: var(--ink-3); }
 .settle .amt { margin-left: auto; font-weight: 800; }
 .settle .amt small { color: var(--ink-2); font-weight: 600; font-size: 11px; }
@@ -436,8 +499,8 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: var(--card-2); border: 1px solid var(--line); border-radius: 9px;
 }
 .total-chip {
-  font-size: 11.5px; font-weight: 800; color: var(--crimson);
-  background: var(--rose); border: 1px solid var(--rose-line);
+  font-size: 11.5px; font-weight: 800; color: var(--gold);
+  background: rgba(243, 194, 104, .1); border: 1px solid rgba(243, 194, 104, .32);
   padding: 3px 11px; border-radius: 999px;
 }
 
@@ -469,7 +532,8 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .progress { height: 7px; background: var(--card-2); border-radius: 999px; overflow: hidden; }
 .progress-bar {
   height: 100%; width: 0; border-radius: 999px;
-  background: linear-gradient(90deg, var(--crimson), var(--red));
+  background: linear-gradient(90deg, var(--gold), var(--red));
+  box-shadow: 0 0 10px rgba(243, 194, 104, .4);
   transition: width .3s ease;
 }
 
@@ -489,7 +553,11 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: var(--card-2); border: 1px solid var(--line);
   border-radius: 999px; padding: 2px 9px; white-space: nowrap;
 }
-.cl-cat .n.all { color: var(--ok); background: #f1f9f5; border-color: #cfe6da; }
+.cl-cat .n.all {
+  color: var(--ok);
+  background: rgba(90, 209, 154, .1);
+  border-color: rgba(90, 209, 154, .35);
+}
 .cl-cat .chev { font-size: 11px; color: var(--ink-3); width: 12px; text-align: center; }
 
 .cl-body { display: none; padding: 0 16px 6px; }
@@ -507,10 +575,13 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .cl-box {
   flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px;
   border: 2px solid var(--line); background: var(--card-2);
-  display: grid; place-items: center; font-size: 14px; color: #fff;
+  display: grid; place-items: center; font-size: 14px; color: #1a1205;
   margin-left: 2px;
 }
-.cl-item.done .cl-box { background: var(--crimson); border-color: var(--crimson); }
+.cl-item.done .cl-box {
+  background: var(--gold); border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(243, 194, 104, .35);
+}
 .cl-item.done .cl-text { color: var(--ink-3); text-decoration: line-through; }
 .cl-text { flex: 1; font-size: 14.5px; line-height: 1.5; padding: 4px 0; }
 .cl-del {
@@ -534,7 +605,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   display: flex; justify-content: center; gap: 4px;
-  background: rgba(250,248,245,.92);
+  background: rgba(13, 18, 34, .88);
   backdrop-filter: saturate(1.4) blur(12px);
   -webkit-backdrop-filter: saturate(1.4) blur(12px);
   border-top: 1px solid var(--line);
@@ -551,23 +622,27 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   display: grid; place-items: center;
   transition: background .18s;
 }
-.tab.active { color: var(--crimson); font-weight: 800; }
-.tab.active .ico { background: var(--rose); }
+.tab.active { color: var(--gold); font-weight: 800; }
+.tab.active .ico {
+  background: rgba(243, 194, 104, .14);
+  box-shadow: 0 0 12px rgba(243, 194, 104, .22);
+}
 
 /* ============ 對話框 / 提示 ============ */
 .modal {
   position: fixed; inset: 0; z-index: 50;
-  background: rgba(28,26,25,.42);
+  background: rgba(4, 7, 15, .66);
   display: grid; place-items: end center;
 }
 .modal-box {
   width: 100%; max-width: 460px; max-height: 86vh; overflow: auto;
   background: var(--card); border-radius: 22px 22px 0 0;
+  border: 1px solid var(--line); border-bottom: 0;
   padding: 18px 18px calc(20px + env(safe-area-inset-bottom));
 }
 @media (min-width: 620px) {
   .modal { place-items: center; }
-  .modal-box { border-radius: 22px; }
+  .modal-box { border-radius: 22px; border-bottom: 1px solid var(--line); }
 }
 .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .modal-head h3 { font-size: 17px; }
@@ -576,9 +651,9 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(var(--tabbar-h) + 22px + env(safe-area-inset-bottom));
-  background: var(--ink); color: #fff;
+  background: #eef1f8; color: #10152a;
   padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
-  z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  z-index: 60; box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
 }
 
 /* ============ 寬螢幕 ============ */
@@ -592,7 +667,9 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
     padding: 6px; box-shadow: var(--shadow);
   }
   .tab { flex-direction: row; gap: 7px; font-size: 13px; padding: 8px 0; max-width: none; }
-  .tab .ico { width: auto; height: auto; background: none !important; }
-  .tab.active { background: var(--rose); border-radius: 999px; }
+  .tab .ico { width: auto; height: auto; background: none !important; box-shadow: none !important; }
+  .tab.active { background: rgba(243, 194, 104, .12); border-radius: 999px; }
   .page-title { font-size: 31px; }
+  /* 寬螢幕的 tabbar 吸在頂上,日期條就不要再吸,免得疊在一起 */
+  .daybar { position: static; }
 }

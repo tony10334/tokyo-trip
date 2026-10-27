@@ -44,7 +44,7 @@ GitHub Pages 對靜態檔的快取是 10 分鐘。沒有版本號的話,使用�
 
 ```
 index.html        版面骨架 + 5 個分頁容器
-css/style.css     全部樣式。暖米色底 #f3f0ea,深緋紅 #a3123c,玫瑰色 #fdeef1
+css/style.css     全部樣式。冬夜點燈風：深夜藍底 #0b101e,點燈緋紅 #e8536f,燈串金 #f3c268
 js/config.js      出發日期、成員、匯率、共享開關
 js/data.js        ★ 內容都在這：ITINERARY / FOOD / GEO / YAMANOTE / CHECKLIST / INFO
 js/store.js       資料層：本機儲存 + 雲端同步 + 衝突合併

@@ -42,6 +42,17 @@ async function start() {
   $('#tripDays').textContent = daysText;
   $('#eyebrowDays').textContent = daysText;
 
+  // 日期條要吸在頂欄下面,把頂欄實際高度量好塞進 CSS 變數
+  const topbar = document.querySelector('.topbar');
+  const setTopH = () =>
+    document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+  setTopH();
+  window.addEventListener('resize', setTopH);
+
+  // 旅途中打開網站,直接跳到今天
+  const today = tripToday();
+  if (today) currentDay = today;
+
   bindTabs();
   $('#tripPill').addEventListener('click', () => {
     if ($('#tripPill').classList.contains('is-cta')) goTab('info');
@@ -56,6 +67,14 @@ async function start() {
 
   // 第一次打開跳編輯教學,之後從「❓ 編輯教學」隨時看
   if (!localStorage.getItem(TOUR_KEY)) showEditTour(false);
+
+  // 旅途中每分鐘更新一次「現在」標記;拖曳或開著對話框時不要動畫面
+  setInterval(() => {
+    if (!tripToday()) return;
+    if (document.querySelector('.row.dragging')) return;
+    if (!$('#modal').classList.contains('hidden')) return;
+    renderItinerary();
+  }, 60000);
 }
 
 function renderAll() {
@@ -110,6 +129,14 @@ function dayDate(day) {
   return d;
 }
 function fmtDate(d) { return d ? `${d.getMonth() + 1}/${d.getDate()}` : ''; }
+
+/** 今天是旅程第幾天;不在旅程期間回傳 null */
+function tripToday() {
+  if (!CONFIG.startDate) return null;
+  const d0 = new Date(CONFIG.startDate + 'T00:00:00');
+  const n = Math.floor((Date.now() - d0) / 864e5) + 1;
+  return (n >= 1 && n <= ITINERARY.length) ? n : null;
+}
 
 /* ------------------------------------------------------------
    分頁切換
@@ -175,6 +202,8 @@ function renderItinerary() {
     </article>`;
 
   bindRowEditing(day);
+  renderCountChip();
+  markNowRow(day);
   renderDayMap();
 
   /* --- 上一天 / 下一天 --- */
@@ -183,6 +212,34 @@ function renderItinerary() {
   next.disabled = currentDay === ITINERARY.length;
   prev.textContent = currentDay === 1 ? '← 第一天' : `← Day ${currentDay - 1}`;
   next.textContent = currentDay === ITINERARY.length ? '最後一天 →' : `Day ${currentDay + 1} →`;
+}
+
+/** 行程頁標題下的膠囊：出發倒數 / 旅途中 Day N / 旅程結束 */
+function renderCountChip() {
+  const chip = $('#countChip');
+  if (!chip) return;
+  if (!CONFIG.startDate) { chip.textContent = ''; return; }
+  const today = tripToday();
+  if (today) {
+    chip.textContent = `🏮 旅途中 · Day ${today}`;
+    return;
+  }
+  const left = Math.ceil((new Date(CONFIG.startDate + 'T00:00:00') - Date.now()) / 864e5);
+  chip.textContent = left > 0 ? `✨ 出發倒數 ${left} 天` : '🗼 旅程結束,歡迎回來';
+}
+
+/** 旅途中看今天的行程時,把「現在走到哪一筆」點亮 */
+function markNowRow(day) {
+  if (tripToday() !== day.day) return;
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  let hit = -1;
+  dayItems(day).forEach((it, i) => {
+    const m = /^(\d{1,2}):(\d{2})/.exec(it.time || '');
+    if (m && (+m[1] * 60 + +m[2]) <= cur) hit = i;
+  });
+  const rows = $$('#dayContent .row');
+  if (hit >= 0 && rows[hit]) rows[hit].classList.add('row-now');
 }
 
 /* ------------------------------------------------------------
