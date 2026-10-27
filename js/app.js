@@ -6,9 +6,14 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => [...document.querySelectorAll(sel)];
 
 const TYPE_ICON = {
-  move: '✈️', food: '🍜', see: '⛩️', shop: '🛍️',
+  move: '🚃', food: '🍜', see: '⛩️', shop: '🛍️',
   stay: '🏨', free: '🚶', cafe: '☕', night: '🌃',
 };
+/** move 預設是電車;只有真正的航班(抵達成田、BR 航班)才給 ✈️ */
+function itemIcon(it) {
+  if (it.type === 'move' && /抵達成田|BR\s?\d|航班|起飛|✈/.test(it.title || '')) return '✈️';
+  return TYPE_ICON[it.type] || '•';
+}
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
 let currentDay = 1;
@@ -266,7 +271,7 @@ function renderOverview() {
           ${items.map((it, i) => `
           <div class="ov-row${i === nowIdx ? ' ov-now' : ''}">
             <span class="ov-time">${esc(it.time || '')}</span>
-            <span class="ov-ico">${TYPE_ICON[it.type] || '•'}</span>
+            <span class="ov-ico">${itemIcon(it)}</span>
             <span class="ov-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</span>
           </div>`).join('')}
         </div>
@@ -464,7 +469,7 @@ function rowHTML(it) {
     <div class="row" data-id="${esc(it._id || '')}">
       <span class="row-drag" title="按住上下拖曳可以改順序">⠿</span>
       <div class="row-time">${esc(it.time || '')}</div>
-      <div class="row-ico">${TYPE_ICON[it.type] || '•'}</div>
+      <div class="row-ico">${itemIcon(it)}</div>
       <div class="row-main">
         <div class="row-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}${it.dur ? `<span class="dur">⏱ ${esc(it.dur)}</span>` : ''}</div>
         ${it.go ? `<div class="row-go">🚃 ${esc(it.go)}</div>` : ''}
@@ -548,6 +553,8 @@ function bindRowEditing(day) {
 function startDrag(e, row, dayNo) {
   e.preventDefault();
   const body = row.parentElement;
+  // 拖之前先記下原本順序,事後 toast 可以一鍵復原(誤拖是單手捲動的常見事故)
+  const startOrder = [...body.querySelectorAll('.row')].map(r => r.dataset.id);
   row.classList.add('dragging');
   const move = ev => {
     ev.preventDefault();
@@ -563,8 +570,12 @@ function startDrag(e, row, dayNo) {
     document.removeEventListener('pointerup', up);
     row.classList.remove('dragging');
     const order = [...body.querySelectorAll('.row')].map(r => r.dataset.id);
+    if (order.join() === startOrder.join()) return;   // 沒真的移動就不寫補丁
     await putEdit({ id: 'order:d' + dayNo, day: dayNo, order, ts: Date.now() });
-    toast('順序已更新');
+    toast('順序已更新', {
+      action: { label: '復原', fn: () =>
+        putEdit({ id: 'order:d' + dayNo, day: dayNo, order: startOrder, ts: Date.now() }) },
+    });
   };
   document.addEventListener('pointermove', move, { passive: false });
   document.addEventListener('pointerup', up);
@@ -572,7 +583,7 @@ function startDrag(e, row, dayNo) {
 
 /* --- 新增 / 編輯表單 --- */
 const TYPE_OPTIONS = [
-  ['see', '⛩️ 景點'], ['food', '🍜 吃的'], ['shop', '🛍️ 購物'], ['move', '✈️ 移動'],
+  ['see', '⛩️ 景點'], ['food', '🍜 吃的'], ['shop', '🛍️ 購物'], ['move', '🚃 移動'],
   ['night', '🌃 夜景'], ['cafe', '☕ 咖啡'], ['stay', '🏨 住宿'], ['free', '🚶 自由'],
 ];
 
@@ -733,7 +744,10 @@ function showEditTour(manual) {
           名稱和座標自動填好。<br><small>⚠️ 手機分享的短網址不行 ——
           用瀏覽器開啟地點後複製網址列,或直接打店名</small></div></div>
       <div class="tour-step"><span class="tour-ico">⠿</span>
-        <div><b>拖曳排序</b><br>按住每筆左邊的「⠿」上下拖,就能改順序</div></div>
+        <div><b>拖曳排序</b><br>按住每筆左邊的「⠿」上下拖,就能改順序。
+          <small>不小心拖到了?「順序已更新」提示上有「復原」。</small></div></div>
+      <div class="tour-step"><span class="tour-ico">📅</span>
+        <div><b>移到別天</b><br>點「⋯」打開編輯,把「天」換成別天就整筆搬過去</div></div>
       <div class="tour-step"><span class="tour-ico">☁️</span>
         <div><b>四個人同步</b><br>改動會同步給所有人（15 秒內）;沒網路照樣能改,回線自動補傳</div></div>
       <div class="tour-step"><span class="tour-ico">❓</span>
@@ -1243,14 +1257,27 @@ function renderChecklist() {
    資訊
    ------------------------------------------------------------ */
 function renderInfo() {
-  $('#infoWrap').innerHTML = INFO.map(sec => `
-    <div class="card">
+  // 頁首 sticky 錨點:查「一件小事」直接跳那張卡,不用十張卡慢慢捲
+  const anchors = `<div class="info-anchors">` + INFO.map((sec, i) =>
+    `<button type="button" class="info-anchor" data-info="${i}">${sec.icon || ''} ${esc(sec.cat)}</button>`
+  ).join('') + `</div>`;
+
+  $('#infoWrap').innerHTML = anchors + INFO.map((sec, i) => `
+    <div class="card" id="info-sec-${i}">
       <div class="card-head"><h3>${sec.icon || ''} ${esc(sec.cat)}</h3></div>
       ${sec.rows.map(([k, v]) => `<div class="info-row">
         <div class="info-k">${esc(k)}</div>
         <div class="info-v">${linkify(v)}</div>
       </div>`).join('')}
     </div>`).join('');
+
+  $$('#infoWrap [data-info]').forEach(b =>
+    b.addEventListener('click', () => {
+      // 不用 smooth:背景分頁/省電模式會把平滑捲動整個凍住,直接跳比較可靠
+      const card = $('#info-sec-' + b.dataset.info);
+      if (card) card.scrollIntoView({ block: 'start' });
+    }));
+
   renderShare();
 }
 
@@ -1488,29 +1515,37 @@ function showWhoAmIModal() {
   }));
 }
 
-let toastTimer, toastActFn = null;
+let toastTimer, toastGoneTimer, toastActFn = null;
 /**
  * 提示。opts.action = {label, fn} 會多一顆按鈕(例如「復原」),
- * opts.dur 自訂顯示毫秒(預設 2600,有按鈕時預設 5000)。
+ * opts.dur 自訂顯示毫秒(預設 2600,有按鈕時 7500)。
+ * 收場分兩段:先淡出 0.4 秒(這段仍擋住點擊,免得最後一拍按下去
+ * 穿透誤點底下的內容),才真正 display:none。
  */
 function toast(msg, opts = {}) {
   const t = $('#toast');
   toastActFn = null;
+  t.innerHTML = `<span></span>`;
+  t.firstChild.textContent = msg;
   if (opts.action) {
-    t.innerHTML = `<span></span><button type="button" class="toast-act"></button>`;
-    t.firstChild.textContent = msg;
-    t.lastChild.textContent = opts.action.label;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'toast-act';
+    b.textContent = opts.action.label;
     toastActFn = opts.action.fn;
-    t.lastChild.addEventListener('click', () => {
+    b.addEventListener('click', () => {
       const fn = toastActFn;
       toastActFn = null;
       t.classList.add('hidden');
       if (fn) fn();
     });
-  } else {
-    t.textContent = msg;
+    t.appendChild(b);
   }
-  t.classList.remove('hidden');
+  t.classList.remove('hidden', 'leaving');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), opts.dur || (opts.action ? 5000 : 2600));
+  clearTimeout(toastGoneTimer);
+  toastTimer = setTimeout(() => {
+    toastActFn = null;              // 淡出期間按到也不觸發
+    t.classList.add('leaving');
+    toastGoneTimer = setTimeout(() => t.classList.add('hidden'), 420);
+  }, opts.dur || (opts.action ? 7500 : 2600));
 }
