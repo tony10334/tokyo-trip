@@ -5,7 +5,7 @@
    ============================================================ */
 
 :root {
-  --crimson: #e8536f;      /* 主色：點燈緋紅 */
+  --crimson: #d23f5f;      /* 主色：點燈緋紅（當底色時白字可過 AA 4.5:1,別調亮） */
   --red: #ff6b87;          /* 強調紅 */
   --gold: #f3c268;         /* 燈串金 */
   --rose: rgba(232, 83, 111, .13);   /* 緋紅底色（膠囊、選中） */
@@ -81,7 +81,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .brand-logo {
   flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(145deg, #f0657f, #b32a50);
+  background: linear-gradient(145deg, #d94a66, #9e2347);
   color: #fff;
   display: grid; place-items: center; font-size: 19px; line-height: 1;
   box-shadow: 0 0 14px rgba(232, 83, 111, .45);
@@ -111,7 +111,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 
 .page-head { padding: 12px 4px 14px; }
 .eyebrow {
-  font-size: 10.5px; font-weight: 700; letter-spacing: .18em;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .18em;
   color: var(--ink-3); text-transform: uppercase;
 }
 .page-title { font-size: 27px; margin-top: 2px; }
@@ -168,11 +168,11 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   transition: background .15s, color .15s;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.daybtn .dw { font-size: 10px; font-weight: 700; color: var(--ink-3); }
+.daybtn .dw { font-size: 11px; font-weight: 700; color: var(--ink-3); }
 .daybtn .dn { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
 .daybtn:active { background: var(--card-2); }
 .daybtn.active {
-  background: linear-gradient(160deg, #f0657f, #c02e55);
+  background: linear-gradient(160deg, #d23f5f, #9e2347);
   color: #fff;
   box-shadow: 0 2px 14px rgba(232, 83, 111, .45);
 }
@@ -206,7 +206,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 }
 .map-svg { display: block; width: 100%; height: auto; background: #10172a; }
 .map-foot {
-  font-size: 11px; color: var(--ink-3); padding: 9px 14px 12px;
+  font-size: 11.5px; color: var(--ink-3); padding: 9px 14px 12px;
   border-top: 1px solid var(--line); line-height: 1.6;
 }
 .map-empty { padding: 26px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
@@ -258,7 +258,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   padding: 16px 18px 15px;
 }
 .dc-label {
-  font-size: 10.5px; font-weight: 800; letter-spacing: .14em;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .14em;
   color: var(--gold); text-transform: uppercase;
 }
 .daycard-head h3 { font-size: 22px; margin-top: 3px; color: #fff; }
@@ -294,7 +294,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   border-radius: 9px; padding: 5px 9px; line-height: 1.6;
 }
 .badge {
-  display: inline-block; font-size: 10.5px; font-weight: 700;
+  display: inline-block; font-size: 11px; font-weight: 700;
   color: var(--ink-2); background: var(--card-2);
   border: 1px solid var(--line); border-radius: 999px;
   padding: 0 8px; margin-left: 6px; vertical-align: 2px; letter-spacing: .02em;
@@ -319,16 +319,18 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 }
 
 /* --- 行程編輯 --- */
+/* ⠿ 與 ⋯ 視覺不變,但命中區撐到 ~44px(負 margin 抵銷佔位) */
 .row-drag {
   flex: 0 0 auto; cursor: grab; touch-action: none; user-select: none;
   color: var(--ink-2); opacity: .45; font-size: 13px;
-  padding: 3px 2px 0 0; line-height: 1.2;
+  padding: 13px 10px 13px 4px; margin: -10px -6px -10px -4px; line-height: 1.2;
 }
 .row.dragging { opacity: .55; background: var(--rose); border-radius: 10px; }
 .row-menu {
   flex: 0 0 auto; border: none; background: none; cursor: pointer;
   color: var(--ink-2); opacity: .55; font-size: 17px; font-weight: 700;
-  padding: 0 2px; line-height: 1; align-self: flex-start;
+  padding: 12px 8px 12px 12px; margin: -10px -8px -10px -8px;
+  line-height: 1; align-self: flex-start;
 }
 .edit-row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
 .btn-add-item {
@@ -393,7 +395,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 
 .btn-primary {
   width: 100%; padding: 13px; border: 0; border-radius: 12px;
-  background: linear-gradient(160deg, #f0657f, #c02e55);
+  background: linear-gradient(160deg, #d23f5f, #9e2347);
   color: #fff; font-weight: 700; cursor: pointer;
   letter-spacing: .02em;
   box-shadow: 0 2px 14px rgba(232, 83, 111, .3);
@@ -403,6 +405,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: none; border: 0; color: var(--red);
   font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 4px 0;
 }
+.btn-ghost.danger { color: #ff8296; }
 .btn-line {
   flex: 1; padding: 11px; border-radius: 11px; cursor: pointer;
   background: var(--card-2); border: 1px solid var(--line);
@@ -443,7 +446,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   text-decoration: none; border-bottom: 2px solid var(--rose-line);
 }
 .shop-kind {
-  font-size: 10.5px; font-weight: 700; color: #ffa9bb;
+  font-size: 11px; font-weight: 700; color: #ffa9bb;
   background: var(--rose); border-radius: 999px; padding: 1px 9px;
 }
 .shop-meta {
@@ -475,7 +478,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .bal-num { font-size: 17px; font-weight: 800; letter-spacing: -.02em; margin-top: 1px; }
 .bal-num.plus { color: var(--ok); }
 .bal-num.minus { color: var(--red); }
-.bal-sub { font-size: 10.5px; color: var(--ink-3); }
+.bal-sub { font-size: 11px; color: var(--ink-3); }
 
 .settle-wrap { margin-top: 18px; }
 .settle-list { display: grid; gap: 7px; }
@@ -516,11 +519,14 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .exp-meta { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
 .exp-amt { text-align: right; white-space: nowrap; }
 .exp-jpy { font-weight: 800; }
-.exp-twd { font-size: 10.5px; color: var(--ink-3); }
+.exp-twd { font-size: 11px; color: var(--ink-3); }
 .exp-del {
   background: none; border: 0; color: var(--ink-3);
-  cursor: pointer; font-size: 15px; padding: 2px 0 0 2px; line-height: 1;
+  cursor: pointer; font-size: 15px; line-height: 1;
+  width: 44px; height: 44px; border-radius: 50%;
+  margin: -10px -12px -10px -6px;
 }
+.exp-del:active { background: var(--card-2); }
 
 /* ============ 清單 ============ */
 .progress-card { padding: 15px 17px; }
@@ -614,7 +620,7 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .tab {
   flex: 1; max-width: 110px; border: 0; background: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font-size: 10.5px; color: var(--ink-3); font-weight: 600; padding: 0;
+  font-size: 11px; color: var(--ink-3); font-weight: 600; padding: 0;
 }
 .tab .ico {
   font-size: 17px; line-height: 1;
@@ -654,13 +660,97 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
   background: #eef1f8; color: #10152a;
   padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
   z-index: 60; box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  max-width: min(92vw, 480px); text-align: center;
+  display: flex; align-items: center; gap: 12px; justify-content: center;
 }
+.toast.hidden { display: none; }
+.toast-act {
+  flex: 0 0 auto; background: none; border: 0; cursor: pointer;
+  color: #9e2347; font-weight: 800; font-size: 13px;
+  padding: 6px 2px; margin: -6px 0; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ============ 輕量確認框（疊在編輯表單之上） ============ */
+#confirm { z-index: 70; place-items: center; background: rgba(4, 7, 15, .6); }
+.confirm-box {
+  width: min(88vw, 360px);
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 18px; box-shadow: var(--shadow);
+  padding: 18px 18px 14px;
+}
+.confirm-msg { font-size: 14.5px; line-height: 1.6; margin: 0 0 14px; white-space: pre-wrap; }
+.confirm-box .btn-row { flex-wrap: nowrap; }
+
+/* ============ 行程總覽（全部天數,左右滑換天） ============ */
+.alldays {
+  display: flex; gap: 12px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  margin: 0 -14px; padding: 2px 14px 10px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.allday {
+  flex: 0 0 min(84vw, 320px); scroll-snap-align: center;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden; align-self: flex-start;
+}
+.allday-head {
+  display: block; width: 100%; text-align: left; border: 0; cursor: pointer;
+  background:
+    radial-gradient(3px 3px at 20% 30%, rgba(243, 194, 104, .85) 40%, transparent 70%),
+    radial-gradient(3px 3px at 76% 62%, rgba(243, 194, 104, .5) 40%, transparent 70%),
+    linear-gradient(135deg, #1d2548, #342045);
+  border-bottom: 1px solid rgba(243, 194, 104, .25);
+  padding: 11px 14px 10px; color: #fff;
+}
+.allday-head .dc-label { font-size: 11px; }
+.allday-head h4 { margin: 2px 0 0; font-size: 15.5px; font-weight: 800; letter-spacing: -.01em; }
+.allday-head p { margin: 1px 0 0; font-size: 11.5px; color: rgba(237, 240, 249, .66); }
+.allday.is-today { border-color: rgba(243, 194, 104, .45); }
+.allday.is-today .dc-label::after { content: ' · 今天'; color: var(--gold); }
+.allday-body { padding: 2px 14px 10px; }
+.ov-row {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
+  font-size: 13px; line-height: 1.5;
+}
+.ov-row:last-child { border-bottom: 0; }
+.ov-time { flex: 0 0 36px; font-size: 11.5px; color: var(--ink-2); padding-top: 1.5px; }
+.ov-ico { flex: 0 0 auto; font-size: 13.5px; line-height: 1.4; }
+.ov-title { flex: 1; min-width: 0; font-weight: 600; }
+.ov-row.ov-now {
+  margin: 0 -8px; padding-left: 8px; padding-right: 8px;
+  background: linear-gradient(90deg, rgba(243, 194, 104, .12), transparent 75%);
+  border-radius: 9px; box-shadow: inset 2.5px 0 0 var(--gold);
+}
+.ov-row.ov-now .ov-time { color: var(--gold); font-weight: 800; }
+.ov-foot {
+  display: block; width: 100%; border: 0; cursor: pointer; text-align: center;
+  background: var(--card-2); color: var(--ink-2);
+  font-size: 12px; font-weight: 700; padding: 10px;
+  border-top: 1px solid var(--line);
+}
+.ov-hint { font-size: 11.5px; color: var(--ink-3); text-align: center; margin: 2px 0 10px; }
+
+/* ============ 編輯表單的「更多欄位」收合 ============ */
+.form-more { margin-bottom: 13px; border: 1px dashed var(--line); border-radius: 12px; }
+.form-more summary {
+  cursor: pointer; list-style: none; -webkit-user-select: none; user-select: none;
+  font-size: 12.5px; font-weight: 700; color: var(--ink-2);
+  padding: 11px 13px;
+}
+.form-more summary::-webkit-details-marker { display: none; }
+.form-more summary::before { content: '▸ '; color: var(--ink-3); }
+.form-more[open] summary::before { content: '▾ '; }
+.form-more > div { padding: 2px 13px 0; }
 
 /* ============ 寬螢幕 ============ */
 @media (min-width: 860px) {
   body { padding-bottom: 24px; }
   .tabbar {
-    position: sticky; top: 0; bottom: auto;
+    /* nav 在 DOM 裡放在 main 前面,sticky 才貼得住;貼在頂欄正下方 */
+    position: sticky; top: var(--topbar-h, 76px); bottom: auto;
     max-width: 760px; margin: 8px auto 0;
     border: 1px solid var(--line); border-radius: 999px;
     background: var(--card); backdrop-filter: none;

@@ -7,7 +7,7 @@
 <title>東京 7日6夜</title>
 <!-- ?v= 是版本號。每次改完 css/js 一定要把下面所有 v 一起 +1,
      否則瀏覽器可能拿到「新的 HTML + 舊的 JS」而整個畫面空白。 -->
-<link rel="stylesheet" href="css/style.css?v=33">
+<link rel="stylesheet" href="css/style.css?v=35">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛩️</text></svg>">
 </head>
 <body>
@@ -22,6 +22,16 @@
     <div class="brand-pill" id="tripPill">待定出發</div>
   </div>
 </header>
+
+<!-- 手機上 fixed 在底部;桌機(≥860px)sticky 貼在頂欄下面,
+     所以要放在 main 前面,sticky 才貼得住。 -->
+<nav class="tabbar">
+  <button class="tab active" data-page="itinerary"><span class="ico">🗾</span><span class="lb">行程</span></button>
+  <button class="tab" data-page="food"><span class="ico">🍜</span><span class="lb">美食</span></button>
+  <button class="tab" data-page="expenses"><span class="ico">🧾</span><span class="lb">分帳</span></button>
+  <button class="tab" data-page="checklist"><span class="ico">✅</span><span class="lb">清單</span></button>
+  <button class="tab" data-page="info"><span class="ico">📌</span><span class="lb">資訊</span></button>
+</nav>
 
 <main>
 
@@ -130,7 +140,7 @@
           <div class="progress-num" id="clCount">0 / 0</div>
           <div class="progress-sub">已經準備好的項目</div>
         </div>
-        <button class="btn-ghost" id="btnResetCl">全部取消</button>
+        <button class="btn-ghost danger" id="btnResetCl">全部取消</button>
       </div>
       <div class="progress"><div class="progress-bar" id="clBar"></div></div>
     </div>
@@ -182,14 +192,6 @@
 
 </main>
 
-<nav class="tabbar">
-  <button class="tab active" data-page="itinerary"><span class="ico">🗾</span><span class="lb">行程</span></button>
-  <button class="tab" data-page="food"><span class="ico">🍜</span><span class="lb">美食</span></button>
-  <button class="tab" data-page="expenses"><span class="ico">🧾</span><span class="lb">分帳</span></button>
-  <button class="tab" data-page="checklist"><span class="ico">✅</span><span class="lb">清單</span></button>
-  <button class="tab" data-page="info"><span class="ico">📌</span><span class="lb">資訊</span></button>
-</nav>
-
 <div class="modal hidden" id="modal">
   <div class="modal-box">
     <div class="modal-head"><h3 id="modalTitle">成員</h3><button class="modal-x" id="modalClose">✕</button></div>
@@ -197,11 +199,16 @@
   </div>
 </div>
 
+<!-- 輕量確認框:跟 #modal 分開,才能疊在編輯表單上面問「要不要捨棄」 -->
+<div class="modal hidden" id="confirm">
+  <div class="confirm-box" id="confirmBox"></div>
+</div>
+
 <div class="toast hidden" id="toast"></div>
 
-<script src="js/config.js?v=33"></script>
-<script src="js/data.js?v=33"></script>
-<script src="js/store.js?v=33"></script>
-<script src="js/app.js?v=33"></script>
+<script src="js/config.js?v=35"></script>
+<script src="js/data.js?v=35"></script>
+<script src="js/store.js?v=35"></script>
+<script src="js/app.js?v=35"></script>
 </body>
 </html>

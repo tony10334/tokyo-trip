@@ -12,6 +12,7 @@ const TYPE_ICON = {
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
 let currentDay = 1;
+let overviewMode = false;   // true = 行程頁顯示七天總覽(左右滑換天)
 
 /* ------------------------------------------------------------
    啟動
@@ -65,8 +66,15 @@ async function start() {
   Store.onChange(renderAll);
   await Store.init();
 
-  // 第一次打開跳編輯教學,之後從「❓ 編輯教學」隨時看
-  if (!localStorage.getItem(TOUR_KEY)) showEditTour(false);
+  // 第一次打開:先讓人看行程,不要先上編輯課 —— 教學改成一句 toast 指路,
+  // 想學再從「❓ 編輯教學」點開(Jordan 第一眼該看到的是行程,不是教學 modal)
+  if (!localStorage.getItem(TOUR_KEY)) {
+    localStorage.setItem(TOUR_KEY, '1');
+    toast('✏️ 行程可以直接改 — 教學在每天最下面的「❓」', { dur: 5000 });
+  }
+
+  // 共享房間裡,這台裝置還不知道自己是誰 → 問一次(分帳預設付款人用)
+  if (Store.status.mode === 'cloud' && !whoAmI()) showWhoAmIModal();
 
   // 旅途中每分鐘更新一次「現在」標記;拖曳或開著對話框時不要動畫面
   setInterval(() => {
@@ -162,17 +170,18 @@ function bindDayNav() {
 function goDay(n) {
   if (n < 1 || n > ITINERARY.length) return;
   currentDay = n;
+  overviewMode = false;
   renderItinerary();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderItinerary() {
-  /* --- 日期橫捲列 --- */
+  /* --- 日期橫捲列(最後一格「全」= 七天總覽) --- */
   const bar = $('#dayBar');
   bar.innerHTML = '';
   ITINERARY.forEach(d => {
     const b = document.createElement('button');
-    b.className = 'daybtn' + (d.day === currentDay ? ' active' : '');
+    b.className = 'daybtn' + (!overviewMode && d.day === currentDay ? ' active' : '');
     const dt = dayDate(d.day);
     // 有出發日期就顯示成日曆（週三 / 23）,沒有就退回 D1 D2
     b.innerHTML = dt
@@ -181,6 +190,19 @@ function renderItinerary() {
     b.addEventListener('click', () => goDay(d.day));
     bar.appendChild(b);
   });
+  const allBtn = document.createElement('button');
+  allBtn.className = 'daybtn' + (overviewMode ? ' active' : '');
+  allBtn.innerHTML = `<span class="dw">7天</span><span class="dn">全</span>`;
+  allBtn.addEventListener('click', () => {
+    overviewMode = true;
+    renderItinerary();
+    window.scrollTo({ top: 0 });
+  });
+  bar.appendChild(allBtn);
+
+  renderCountChip();
+  $('.daynav') && ($('.daynav').style.display = overviewMode ? 'none' : '');
+  if (overviewMode) { renderOverview(); return; }
 
   /* --- 日卡 --- */
   const day = ITINERARY.find(d => d.day === currentDay) || ITINERARY[0];
@@ -202,7 +224,6 @@ function renderItinerary() {
     </article>`;
 
   bindRowEditing(day);
-  renderCountChip();
   markNowRow(day);
   renderDayMap();
 
@@ -212,6 +233,55 @@ function renderItinerary() {
   next.disabled = currentDay === ITINERARY.length;
   prev.textContent = currentDay === 1 ? '← 第一天' : `← Day ${currentDay - 1}`;
   next.textContent = currentDay === ITINERARY.length ? '最後一天 →' : `Day ${currentDay + 1} →`;
+}
+
+/* --- 七天總覽:每天一欄,左右滑換天、上下捲看整頁;點任何地方進那天 --- */
+function renderOverview() {
+  const today = tripToday();
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+
+  $('#dayMap').innerHTML = '';
+  $('#dayContent').innerHTML = `
+    <p class="ov-hint">← 左右滑看別天 · 點一天進去看細節 →</p>
+    <div class="alldays">` +
+    ITINERARY.map(d => {
+      const dt = dayDate(d.day);
+      const tag = dt ? `${fmtDate(dt)}（週${WEEK[dt.getDay()]}）` : (d.tag || '');
+      const items = dayItems(d);
+      // 今天的話,標出「現在走到哪一筆」(跟單日畫面同一套邏輯)
+      let nowIdx = -1;
+      if (today === d.day) items.forEach((it, i) => {
+        const m = /^(\d{1,2}):(\d{2})/.exec(it.time || '');
+        if (m && (+m[1] * 60 + +m[2]) <= cur) nowIdx = i;
+      });
+      return `
+      <article class="allday${today === d.day ? ' is-today' : ''}" data-ovday="${d.day}">
+        <button type="button" class="allday-head" data-ovgo="${d.day}">
+          <div class="dc-label">Day ${d.day} · ${esc(tag)}</div>
+          <h4>${esc(d.title)}</h4>
+          <p>${esc(d.area || '')}</p>
+        </button>
+        <div class="allday-body">
+          ${items.map((it, i) => `
+          <div class="ov-row${i === nowIdx ? ' ov-now' : ''}">
+            <span class="ov-time">${esc(it.time || '')}</span>
+            <span class="ov-ico">${TYPE_ICON[it.type] || '•'}</span>
+            <span class="ov-title">${esc(it.title)}${it.todo ? '<span class="badge">待填</span>' : ''}</span>
+          </div>`).join('')}
+        </div>
+        <button type="button" class="ov-foot" data-ovgo="${d.day}">看 Day ${d.day} 細節 →</button>
+      </article>`;
+    }).join('') + `</div>`;
+
+  $$('#dayContent [data-ovgo]').forEach(b =>
+    b.addEventListener('click', () => goDay(Number(b.dataset.ovgo))));
+
+  // 旅途中打開總覽,自動把「今天」那欄滑到眼前
+  if (today) {
+    const col = $(`#dayContent [data-ovday="${today}"]`);
+    if (col) col.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
 }
 
 /** 行程頁標題下的膠囊：出發倒數 / 旅途中 Day N / 旅程結束 */
@@ -509,6 +579,15 @@ const TYPE_OPTIONS = [
 function openItemModal(day, itemId) {
   const editing = itemId ? dayItems(day).find(x => x._id === itemId) : null;
   const v = editing || {};
+  // 低頻欄位收進「更多」;原本有填值就預先展開,編輯時才看得到自己填過什麼
+  const hasMore = !!(v.buy || v.cost || v.place || v.link);
+  const daySel = `
+    <div class="field"><label>天</label>
+      <select id="fDay">${ITINERARY.map(d => {
+        const dt = dayDate(d.day);
+        return `<option value="${d.day}"${d.day === day.day ? ' selected' : ''}>Day ${d.day}${
+          dt ? ' · ' + fmtDate(dt) : ''}</option>`;
+      }).join('')}</select></div>`;
   showModal(editing ? '編輯行程' : `新增行程 · Day ${day.day}`, `
     <div class="field">
       <label>🔗 貼上 Google 地圖連結,自動帶入名稱（可跳過）</label>
@@ -523,11 +602,10 @@ function openItemModal(day, itemId) {
         <input type="text" id="fDur" value="${esc(v.dur || '')}" placeholder="約 1 小時"></div>
     </div>
     <div class="field-2col">
+      ${daySel}
       <div class="field"><label>類型</label>
         <select id="fType">${TYPE_OPTIONS.map(([k, l]) =>
           `<option value="${k}"${(v.type || 'see') === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><label style="display:flex;align-items:center;gap:6px;margin-top:26px">
-        <input type="checkbox" id="fTodo" style="width:auto"${v.todo ? ' checked' : ''}> 標成「待填」</label></div>
     </div>
     <div class="field"><label>標題（必填）</label>
       <input type="text" id="fTitle" value="${esc(v.title || '')}" placeholder="例：豐洲市場"></div>
@@ -535,20 +613,27 @@ function openItemModal(day, itemId) {
       <textarea id="fGo" rows="2" placeholder="上野站 →〔銀座線〕→ …">${esc(v.go || '')}</textarea></div>
     <div class="field"><label>備註</label>
       <textarea id="fNote" rows="3">${esc(v.note || '')}</textarea></div>
-    <div class="field"><label>🛍️ 購物備註</label>
-      <textarea id="fBuy" rows="2">${esc(v.buy || '')}</textarea></div>
-    <div class="field"><label>💰 花費</label>
-      <input type="text" id="fCost" value="${esc(v.cost || '')}" placeholder="門票 ¥1,000"></div>
-    <div class="field-2col">
-      <div class="field"><label>📍 地點名（開地圖用）</label>
-        <input type="text" id="fPlace" value="${esc(v.place || '')}"></div>
-      <div class="field"><label>🔗 官網連結</label>
-        <input type="text" id="fLink" value="${esc(v.link || '')}" inputmode="url"></div>
-    </div>
+    <details class="form-more"${hasMore ? ' open' : ''}>
+      <summary>更多欄位：購物備註、花費、地點、官網、待填</summary>
+      <div>
+        <div class="field"><label>🛍️ 購物備註</label>
+          <textarea id="fBuy" rows="2">${esc(v.buy || '')}</textarea></div>
+        <div class="field"><label>💰 花費</label>
+          <input type="text" id="fCost" value="${esc(v.cost || '')}" placeholder="門票 ¥1,000"></div>
+        <div class="field-2col">
+          <div class="field"><label>📍 地點名（開地圖用）</label>
+            <input type="text" id="fPlace" value="${esc(v.place || '')}"></div>
+          <div class="field"><label>🔗 官網連結</label>
+            <input type="text" id="fLink" value="${esc(v.link || '')}" inputmode="url"></div>
+        </div>
+        <div class="field"><label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="fTodo" style="width:auto"${v.todo ? ' checked' : ''}> 標成「待填」</label></div>
+      </div>
+    </details>
     <input type="hidden" id="fGeo" value="${esc(v.geo ? JSON.stringify(v.geo) : '')}">
     <div class="btn-row">
       <button class="btn-primary" id="fSave" style="flex:1">儲存</button>
-      ${editing ? '<button class="btn-line" id="fDelete" style="color:#c0392b;border-color:#c0392b">刪除</button>' : ''}
+      ${editing ? '<button class="btn-line danger" id="fDelete">刪除</button>' : ''}
     </div>
   `);
 
@@ -571,21 +656,40 @@ function openItemModal(day, itemId) {
     };
     try { const g = JSON.parse($('#fGeo').value); if (Array.isArray(g)) item.geo = g; } catch {}
     if (!item.title) return toast('標題要填');
-    if (editing) {
+    const targetDay = Number($('#fDay').value) || day.day;
+    if (editing && targetDay !== day.day) {
+      // 跨天移動 = 把原筆標成刪除 + 在目標天新增一筆(底版/新增項目都通用)
+      await Store.commit(s => {
+        const i = s.itinEdits.findIndex(x => x.id === 'edit:' + itemId);
+        const rec = { id: 'edit:' + itemId, removed: true, ts: Date.now() };
+        if (i >= 0) s.itinEdits[i] = rec; else s.itinEdits.push(rec);
+        s.itinEdits.push({ id: uid(), day: targetDay, item, ts: Date.now() });
+      });
+      closeModal(true);
+      toast(`已移到 Day ${targetDay}`);
+    } else if (editing) {
       await putEdit({ id: 'edit:' + itemId, full: item, ts: Date.now() });
+      closeModal(true);
+      toast('已更新');
     } else {
-      await Store.commit(s => s.itinEdits.push({ id: uid(), day: day.day, item, ts: Date.now() }));
+      await Store.commit(s => s.itinEdits.push({ id: uid(), day: targetDay, item, ts: Date.now() }));
+      closeModal(true);
+      toast('已加進 Day ' + targetDay);
     }
-    closeModal();
-    toast(editing ? '已更新' : '已加進 Day ' + day.day);
   });
 
   const del = $('#fDelete');
   if (del) del.addEventListener('click', async () => {
-    if (!confirm('確定刪除「' + (v.title || '') + '」？4 個人都會看到它消失。')) return;
+    // 不擋 confirm:先刪,給 5 秒「復原」。復原要放回刪除前的那筆補丁紀錄。
+    const prevRec = (Store.state.itinEdits || []).find(x => x.id === 'edit:' + itemId);
+    const prevCopy = prevRec ? JSON.parse(JSON.stringify(prevRec)) : null;
     await putEdit({ id: 'edit:' + itemId, removed: true, ts: Date.now() });
-    closeModal();
-    toast('已刪除');
+    closeModal(true);
+    toast(`已刪除「${v.title || ''}」`, {
+      action: { label: '復原', fn: () => putEdit(
+        prevCopy ? { ...prevCopy, removed: undefined, ts: Date.now() }
+                 : { id: 'edit:' + itemId, ts: Date.now() }) },
+    });
   });
 }
 
@@ -691,10 +795,17 @@ function renderFood() {
 
   $$('#foodWrap [data-fdel]').forEach(b =>
     b.addEventListener('click', async () => {
-      if (!confirm('確定刪掉這家店？')) return;
+      const id = b.dataset.fdel;
+      const shop = Store.state.customFood.find(x => x.id === id);
       await Store.commit(s => {
-        const t = s.customFood.find(x => x.id === b.dataset.fdel);
+        const t = s.customFood.find(x => x.id === id);
         if (t) { t.deleted = true; t.ts = Date.now(); }
+      });
+      toast(`已刪除「${shop ? shop.name : ''}」`, {
+        action: { label: '復原', fn: () => Store.commit(s => {
+          const t = s.customFood.find(x => x.id === id);
+          if (t) { t.deleted = false; t.ts = Date.now(); }
+        }) },
       });
     }));
 }
@@ -730,6 +841,7 @@ function openFoodModal() {
     const name = $('#cfName').value.trim();
     if (!area) return toast('地區要填');
     if (!name) return toast('店名要填');
+    modalDirty = false;
     await Store.commit(s => s.customFood.push({
       id: uid(), area, name,
       kind: $('#cfKind').value.trim() || undefined,
@@ -814,7 +926,9 @@ function renderExpenses() {
   const payer = $('#expPayer');
   const prevPayer = payer.value;
   payer.innerHTML = members.map(m => `<option>${esc(m)}</option>`).join('');
+  // 優先順序:使用者剛選的 > 這台手機的主人 > 第一位
   if (members.includes(prevPayer)) payer.value = prevPayer;
+  else if (whoAmI()) payer.value = whoAmI();
 
   const daySel = $('#expDay');
   const prevDay = daySel.value;
@@ -884,11 +998,18 @@ function renderExpenses() {
 
   $$('#expenseList [data-del]').forEach(b =>
     b.addEventListener('click', async () => {
-      if (!confirm('確定刪除這筆？')) return;
+      const id = b.dataset.del;
+      const exp = Store.state.expenses.find(x => x.id === id);
       // 只標記,不真的移除。刪除記號要同步出去,別人裝置上的舊資料才不會把它復活。
       await Store.commit(s => {
-        const t = s.expenses.find(x => x.id === b.dataset.del);
+        const t = s.expenses.find(x => x.id === id);
         if (t) { t.deleted = true; t.ts = Date.now(); }
+      });
+      toast(`已刪除「${exp ? exp.item : ''}」`, {
+        action: { label: '復原', fn: () => Store.commit(s => {
+          const t = s.expenses.find(x => x.id === id);
+          if (t) { t.deleted = false; t.ts = Date.now(); }
+        }) },
       });
     }));
 }
@@ -932,14 +1053,27 @@ function settle(bal) {
 /* --- 成員設定 --- */
 function openMembersModal() {
   const ms = Store.state.members;
+  const me = whoAmI();
   showModal('成員設定', `
     <p class="hint">改名字之後,已經記錄的支出會跟著改,不用重記。</p>
     ${ms.map((m, i) => `<div class="field">
       <label>第 ${i + 1} 位</label>
       <input type="text" data-m="${i}" value="${esc(m)}">
     </div>`).join('')}
+    <div class="field">
+      <label>這台手機是誰在用？（「誰付的」會自動帶這個人）</label>
+      <div class="chips">${ms.map((m, i) =>
+        `<button type="button" class="chip${m === me ? ' on' : ''}" data-mei="${i}">${esc(m)}</button>`).join('')}
+      </div>
+    </div>
     <button class="btn-primary" id="saveMembers">儲存</button>
   `);
+
+  let meIdx = ms.indexOf(me);   // -1 = 還沒選
+  $$('#modalBody [data-mei]').forEach(b => b.addEventListener('click', () => {
+    meIdx = Number(b.dataset.mei);
+    $$('#modalBody [data-mei]').forEach(x => x.classList.toggle('on', x === b));
+  }));
 
   $('#saveMembers').addEventListener('click', async () => {
     const next = $$('#modalBody [data-m]').map(i => i.value.trim()).filter(Boolean);
@@ -953,7 +1087,9 @@ function openMembersModal() {
         e.share = e.share.map(x => map[x] || x);
       });
     });
-    closeModal();
+    // 「我是誰」跟著新名字走(只存本機)
+    if (meIdx >= 0 && next[meIdx]) localStorage.setItem(WHOAMI_KEY, next[meIdx]);
+    closeModal(true);
     toast('已更新');
   });
 }
@@ -973,8 +1109,12 @@ function bindChecklistForm() {
   });
 
   $('#btnResetCl').addEventListener('click', async () => {
-    if (!confirm('把所有勾選取消？')) return;
+    const prev = { ...Store.state.checked };
+    if (!Object.keys(prev).length) return toast('還沒有勾任何項目');
     await Store.commit(s => { s.checked = {}; });
+    toast('已全部取消', {
+      action: { label: '復原', fn: () => Store.commit(s => { s.checked = prev; }) },
+    });
   });
 }
 
@@ -1051,16 +1191,22 @@ function renderChecklist() {
   $('#clCount').textContent = `${done} / ${total}`;
   $('#clBar').style.width = total ? (done / total * 100) + '%' : '0%';
 
+  // 還原不具破壞性,不用問
   const restore = $('#btnClRestore');
   if (restore) restore.addEventListener('click', async () => {
-    if (!confirm('把所有被刪掉的預設項目找回來？')) return;
     await Store.commit(s => { s.clHidden = {}; });
+    toast('預設項目都找回來了');
   });
 
+  // 預設項目的刪除會同步給全部 4 人 —— 不擋 confirm,但給 5 秒「復原」後悔藥
   $$('#checklistWrap [data-clhide]').forEach(b =>
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
-      await Store.commit(s => { s.clHidden[b.dataset.clhide] = true; });
+      const key = b.dataset.clhide;
+      await Store.commit(s => { s.clHidden[key] = true; });
+      toast(`已刪除「${key.split('::')[1] || key}」`, {
+        action: { label: '復原', fn: () => Store.commit(s => { delete s.clHidden[key]; }) },
+      });
     }));
 
   $$('#checklistWrap .cl-cat').forEach(b =>
@@ -1078,9 +1224,17 @@ function renderChecklist() {
   $$('#checklistWrap [data-clr]').forEach(b =>
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
+      const id = b.dataset.clr;
+      const item = Store.state.customCl.find(x => x.id === id);
       await Store.commit(s => {
-        const t = s.customCl.find(x => x.id === b.dataset.clr);
+        const t = s.customCl.find(x => x.id === id);
         if (t) { t.deleted = true; t.ts = Date.now(); }
+      });
+      toast(`已刪除「${item ? item.text : ''}」`, {
+        action: { label: '復原', fn: () => Store.commit(s => {
+          const t = s.customCl.find(x => x.id === id);
+          if (t) { t.deleted = false; t.ts = Date.now(); }
+        }) },
       });
     }));
 }
@@ -1148,11 +1302,22 @@ function renderShare() {
       }
     });
     $('#btnJoinRoom').addEventListener('click', () => {
-      const code = prompt('貼上房號（或整段分享網址）');
-      if (!code) return;
-      const m = code.match(/room=([\w-]+)/);
-      setRoomId((m ? m[1] : code).trim());
-      location.reload();
+      showModal('加入共享房間', `
+        <p class="hint">把朋友傳給你的<b>整段分享網址</b>(或房號)貼進來就好。</p>
+        <div class="field">
+          <input type="text" id="joinCode" placeholder="https://…?room=tokyo-xxxx 或 tokyo-xxxx"
+            inputmode="url" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="joinGo">加入</button>
+      `);
+      $('#joinCode').focus();
+      $('#joinGo').addEventListener('click', () => {
+        const code = $('#joinCode').value.trim();
+        if (!code) return toast('先貼上網址或房號');
+        const m = code.match(/room=([\w-]+)/);
+        setRoomId((m ? m[1] : code).trim());
+        location.reload();
+      });
     });
     return;
   }
@@ -1237,7 +1402,10 @@ function bindDataButtons() {
   });
 
   $('#btnWipe').addEventListener('click', async () => {
-    if (!confirm('所有支出、勾選都會清掉,確定嗎？')) return;
+    const ok = await uiConfirm(
+      '所有支出、勾選、自訂項目都會清掉,而且會同步給 4 個人。\n建議先按「匯出備份」留一份。',
+      { okLabel: '清空', danger: true });
+    if (!ok) return;
     await Store.wipe();
     toast('已清空');
   });
@@ -1258,18 +1426,91 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+let modalDirty = false;
 function showModal(title, html) {
   $('#modalTitle').textContent = title;
   $('#modalBody').innerHTML = html;
   $('#modal').classList.remove('hidden');
+  // 任何表單打了字之後想關閉,都先問一聲,草稿才不會一滑就蒸發
+  modalDirty = false;
+  $('#modalBody').oninput = () => { modalDirty = true; };
 }
-function closeModal() { $('#modal').classList.add('hidden'); }
+function closeModal(force) {
+  if (modalDirty && force !== true) {
+    uiConfirm('要捨棄還沒儲存的內容嗎？', { okLabel: '捨棄', danger: true })
+      .then(ok => { if (ok) { modalDirty = false; closeModal(true); } });
+    return;
+  }
+  modalDirty = false;
+  $('#modal').classList.add('hidden');
+}
 
-let toastTimer;
-function toast(msg) {
+/** 自訂確認框(取代原生 confirm 的灰盒)。回傳 Promise<boolean>。 */
+function uiConfirm(msg, { okLabel = '確定', cancelLabel = '取消', danger = false } = {}) {
+  return new Promise(resolve => {
+    $('#confirmBox').innerHTML = `
+      <p class="confirm-msg">${esc(msg)}</p>
+      <div class="btn-row">
+        <button class="btn-line" id="cfmNo">${esc(cancelLabel)}</button>
+        <button class="${danger ? 'btn-line danger' : 'btn-primary'}" id="cfmYes"
+          style="flex:1">${esc(okLabel)}</button>
+      </div>`;
+    $('#confirm').classList.remove('hidden');
+    const done = v => { $('#confirm').classList.add('hidden'); resolve(v); };
+    $('#cfmYes').addEventListener('click', () => done(true));
+    $('#cfmNo').addEventListener('click', () => done(false));
+    $('#confirm').addEventListener('click', e => { if (e.target.id === 'confirm') done(false); }, { once: true });
+  });
+}
+
+/* --- 這台裝置是誰(分帳預設付款人;只存本機,不同步) --- */
+const WHOAMI_KEY = 'tokyo-trip-whoami';
+function whoAmI() {
+  const n = localStorage.getItem(WHOAMI_KEY);
+  return n && Store.state.members.includes(n) ? n : '';
+}
+function showWhoAmIModal() {
+  const ms = Store.state.members;
+  showModal('這台手機是誰在用？', `
+    <p class="hint">選一下你是哪一位 —— 記帳時「誰付的」會自動帶你,
+      結餘也看得出哪張是自己的。只記在這台裝置,隨時可在「成員設定」改。</p>
+    <div class="chips" style="margin-bottom:6px">
+      ${ms.map(m => `<button type="button" class="chip" data-who="${esc(m)}">${esc(m)}</button>`).join('')}
+    </div>
+    <p class="hint" style="margin-top:10px">名字還是「同伴A」這種代號？到
+      <b>分帳 → 成員設定</b> 改成真名,大家的紀錄會跟著更新。</p>
+  `);
+  $$('#modalBody [data-who]').forEach(b => b.addEventListener('click', () => {
+    localStorage.setItem(WHOAMI_KEY, b.dataset.who);
+    closeModal(true);
+    toast(`記住了,你是「${b.dataset.who}」`);
+    renderExpenses();
+  }));
+}
+
+let toastTimer, toastActFn = null;
+/**
+ * 提示。opts.action = {label, fn} 會多一顆按鈕(例如「復原」),
+ * opts.dur 自訂顯示毫秒(預設 2600,有按鈕時預設 5000)。
+ */
+function toast(msg, opts = {}) {
   const t = $('#toast');
-  t.textContent = msg;
+  toastActFn = null;
+  if (opts.action) {
+    t.innerHTML = `<span></span><button type="button" class="toast-act"></button>`;
+    t.firstChild.textContent = msg;
+    t.lastChild.textContent = opts.action.label;
+    toastActFn = opts.action.fn;
+    t.lastChild.addEventListener('click', () => {
+      const fn = toastActFn;
+      toastActFn = null;
+      t.classList.add('hidden');
+      if (fn) fn();
+    });
+  } else {
+    t.textContent = msg;
+  }
   t.classList.remove('hidden');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), 1800);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), opts.dur || (opts.action ? 5000 : 2600));
 }

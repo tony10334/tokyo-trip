@@ -66,8 +66,21 @@ js/app.js         畫面邏輯
 使用者對那筆的編輯就會脫鉤（畫面變回底版 + 使用者那筆變孤兒）。**
 要改底版文案就改 note/go/cost 等欄位,title 盡量不要動。
 
-第一次開站會跳「編輯教學」（localStorage `tokyo-trip-edit-tour-v1`）,
-之後從每天行程最下面的「❓ 編輯教學」可以再看。
+第一次開站不再跳教學 modal,只給一句 toast 指路（localStorage `tokyo-trip-edit-tour-v1`）;
+教學從每天行程最下面的「❓ 編輯教學」看。
+
+### 2026/10 介面機制（v=35 加入）
+
+- **身分**:localStorage `tokyo-trip-whoami` 記這台裝置是哪位成員（共享模式首次進站會問一次,
+  成員設定裡可改）。分帳「誰付的」預設帶這個人。改成員名字時會按位置跟著改。
+- **刪除一律「先做+5秒復原 toast」**,不用原生 confirm;只有「清空」走自訂 uiConfirm（#confirm 元素,
+  跟 #modal 分開,可疊在編輯表單上）。原生 confirm()/prompt() 已全數移除,不要再加回來。
+- **modal 髒資料防護**:showModal 後任何輸入會把 modalDirty 設 true,點背景/✕ 關閉會先問;
+  程式內關閉請呼叫 `closeModal(true)`。
+- **跨天移動**:編輯表單的「天」下拉。改天 = 原筆標 removed + 目標天新增一筆（兩種項目通用）。
+- **七天總覽**:日期條最後的「全」,`overviewMode` 旗標,renderOverview() 畫橫向 scroll-snap 欄。
+- **桌機 tabbar**:`<nav class="tabbar">` 在 DOM 裡放在 main **前面**,860px 以上才 sticky 得住,
+  別把它搬回 body 結尾。
 
 ### ITINERARY 每個項目的欄位
 
