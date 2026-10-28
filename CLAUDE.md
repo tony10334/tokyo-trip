@@ -79,6 +79,9 @@ js/app.js         畫面邏輯
   程式內關閉請呼叫 `closeModal(true)`。
 - **跨天移動**:編輯表單的「天」下拉。改天 = 原筆標 removed + 目標天新增一筆（兩種項目通用）。
 - **七天總覽**:日期條最後的「全」,`overviewMode` 旗標,renderOverview() 畫橫向 scroll-snap 欄。
+- **前四天排法比較**(v=38):日期條「全」後面的「比」,`compareMode` 旗標,renderPlans() 畫
+  data.js 的 `PLANS`(一眼比較表 + 晴空塔 vs 澀谷 SKY + 選版本看四天)。只是討論用,不影響 ITINERARY;
+  使用者選定版本後要把該版本寫回 ITINERARY(注意別改到已有的 title)。
 - **桌機 tabbar**:`<nav class="tabbar">` 在 DOM 裡放在 main **前面**,860px 以上才 sticky 得住,
   別把它搬回 body 結尾。
 

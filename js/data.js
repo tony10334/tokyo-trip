@@ -752,3 +752,185 @@ const INFO = [
     ],
   },
 ];
+
+/* ============================================================
+   前四天排法比較（行程頁日期條最後的「比」）
+   2026/10/29 討論用;選定版本後再改 ITINERARY,這裡只是比較,不影響逐日行程。
+   查證來源：六本木けやき坂 2026 = 11/5–12/25 17:00–22:00（森ビル新聞稿報導）;
+   SHIBUYA SKY 官網票券頁（WEB ¥2,700/15:00 後 ¥3,400,只賣 2 週內日期）;
+   晴空塔官網 12 月日曆（12/23–24 ¥2,600、12/25 ¥2,800、12/26 ¥3,200）
+   每站欄位同 ITINERARY：time / type / title / note / place（📍 地圖）/ link（🔗 官網）
+   ============================================================ */
+const PLANS = (() => {
+  const L = {
+    kitte: 'https://marunouchi.jp-kitte.jp/tw/',
+    seam: 'https://ginza.seam.site/',
+    hana: 'https://www.sushi-hanamaru.com/store/details/s11.html',
+    imahan: 'https://restaurant.imahan.com/honten/',
+    senso: 'https://www.gotokyo.org/tc/spot/45/index.html',
+    sola: 'https://www.tokyo-solamachi.jp/',
+    skytree: 'https://global-official-ticket.tokyo-skytree.jp/zt/skytree/product/prod_agohhqeglr4lbgcgtigwuc5lta',
+    shsky: 'https://www.shibuya-scramble-square.com/sky/ticket/',
+    hills: 'https://www.christmas.hills-site.com/',
+    team: 'https://www.teamlab.art/jp/e/borderless-azabudai/',
+    tower: 'https://www.tokyotower.co.jp/',
+    tsukiji: 'https://www.tsukiji.or.jp/calendar/',
+    monja: 'https://www.gotokyo.org/en/spot/85/index.html',
+    ameyoko: 'https://www.ameyoko.net/',
+    meiji: 'https://www.meijijingu.or.jp/tw/',
+  };
+  const S = {
+    koami:  { time: '08:45', type: 'see', title: '小網神社', note: '日比谷線 上野 → 人形町 9 分 · 授与所 9:00 開', place: '小網神社' },
+    imahan: { time: '10:45', type: 'food', title: '人形町今半 排第一輪', note: '午間不能訂,11:00 開門', place: '人形町今半 本店', link: L.imahan },
+    senso:  { time: '13:00', type: 'see', title: '淺草寺 · 雷門 · 仲見世', note: '淺草線直達 6 分 · 御朱印到 17:00', place: '浅草寺 雷門', link: L.senso },
+    kitteDinner: { type: 'food', title: 'KITTE 晚餐:花まる 或 座銀', note: '花まる 5F 抽號、座銀 B1F,都不用訂位', place: '回転寿司 根室花まる KITTE丸の内店', link: L.hana },
+    monja:  { type: 'food', title: '月島文字燒(現場挑)', place: '月島もんじゃストリート', link: L.monja },
+    ameyoko:{ type: 'shop', title: '阿美橫丁藥妝', note: 'スギ薬局到 23:30', place: 'アメヤ横丁', link: L.ameyoko },
+  };
+  const at = (time, base, extra) => Object.assign({}, base, { time }, extra || {});
+
+  const D1 = {
+    kitte: [
+      { time: '16:30', type: 'move', title: '山手線 上野 → 東京 8 分' },
+      { time: '16:40', type: 'night', title: 'KITTE + 丸之內仲通點燈', note: '一到先上 5F 花まる抽號', place: 'KITTE 丸の内', link: L.kitte },
+      { time: '17:45', type: 'shop', title: 'GINZA SEAM 髮品店', note: '有樂町線 1 站 · 營業到 20:00', place: 'SEAM GINZA', link: L.seam },
+      at('18:45', S.kitteDinner),
+      { time: '20:00', type: 'move', title: '山手線回上野' },
+    ],
+    sky: [
+      { time: '16:30', type: 'move', title: '上野 → 押上 約 20 分', note: '銀座線到淺草,轉淺草線 1 站' },
+      { time: '16:50', type: 'shop', title: 'Solamachi 聖誕市集', note: '鬼塚虎、earth music&ecology 都在這', place: '東京ソラマチ', link: L.sola },
+      { time: '18:00', type: 'night', title: '晴空塔展望台(夜景)', note: '12/23 天望甲板 ¥2,600 · 買 18:00 以後的時段,留給班機延誤', place: '東京スカイツリー', link: L.skytree },
+      { time: '19:30', type: 'food', title: 'Solamachi 晚餐', note: '利久牛舌 6F、六厘舎、蟻月 31F 等,現場挑' },
+      { time: '21:00', type: 'move', title: '回上野' },
+    ],
+  };
+  const D2 = {
+    cur: [
+      S.koami, S.imahan, S.senso,
+      { time: '15:45', type: 'shop', title: 'Solamachi 聖誕市集', note: '淺草線 3 分,或走吾妻橋 20 分', place: '東京ソラマチ', link: L.sola },
+      { time: '17:15', type: 'night', title: '晴空塔展望台(夜景)', note: '12/24 天望甲板 ¥2,600 · 兩層 ¥3,800', place: '東京スカイツリー', link: L.skytree },
+      { time: '19:00', type: 'food', title: 'Solamachi 晚餐 → 21:30 回上野' },
+    ],
+    ginza: [
+      S.koami, S.imahan, S.senso,
+      { time: '15:30', type: 'shop', title: 'GINZA SEAM 髮品店', note: '銀座線 淺草 → 銀座 直達 18 分', place: 'SEAM GINZA', link: L.seam },
+      { time: '16:30', type: 'night', title: 'KITTE + 丸之內點燈(平安夜)', note: '走 15 分或丸ノ內線 1 站 · 先上 5F 花まる抽號', place: 'KITTE 丸の内', link: L.kitte },
+      at('18:30', S.kitteDinner),
+      { time: '19:45', type: 'move', title: '山手線回上野 8 分', note: '12/25 會下雨的話,改從日比谷站搭日比谷線 10 分去六本木先看點燈' },
+    ],
+    hibiya: [
+      S.koami, S.imahan,
+      { time: '12:30', type: 'move', title: '日比谷線 人形町 → 神谷町 直達約 17 分' },
+      { time: '13:00', type: 'see', title: 'teamLab Borderless 麻布台', note: '日時指定票要改成 12/24', place: '麻布台ヒルズ', link: L.team },
+      { time: '15:15', type: 'see', title: '東京鐵塔 · 增上寺', note: '黃昏拍到點燈(日落約 16:30)', place: '東京タワー', link: L.tower },
+      { time: '17:15', type: 'night', title: '六本木けやき坂點燈(平安夜)', note: '大江戶線 赤羽橋 → 六本木約 5 分,或走 20 分', place: '六本木けやき坂', link: L.hills },
+      at('18:30', S.monja, { note: '大江戶線 六本木 → 月島 直達 15 分' }),
+      { time: '20:00', type: 'move', title: '大江戶線 月島 → 上野御徒町 直達 15 分' },
+    ],
+  };
+  const D3 = {
+    cur: [
+      { time: '09:00', type: 'food', title: '築地場外市場', note: '日比谷線直達 20 分 · 多帶現金', place: '築地場外市場', link: L.tsukiji },
+      { time: '11:30', type: 'food', title: '燒肉午餐', note: '網站目前排敘敘苑銀座 11:30;不一定要吃叙々苑,有更順路的燒肉店可以換', place: '叙々苑 銀座みゆき通り店' },
+      { time: '13:30', type: 'see', title: 'teamLab Borderless 麻布台', note: '日比谷線 銀座 → 神谷町 12 分', place: '麻布台ヒルズ', link: L.team },
+      { time: '15:30', type: 'see', title: '東京鐵塔 · 增上寺', note: '黃昏拍到點燈', place: '東京タワー', link: L.tower },
+      { time: '17:30', type: 'night', title: '六本木けやき坂點燈', note: '12/25 是最後一天', place: '六本木けやき坂', link: L.hills },
+      at('18:40', S.monja, { note: '大江戶線直達 15 分' }),
+      at('20:45', S.ameyoko),
+    ],
+    east: [
+      { time: '09:00', type: 'food', title: '築地場外市場(早午餐)', note: '日比谷線直達 20 分 · 多帶現金', place: '築地場外市場', link: L.tsukiji },
+      { time: '10:45', type: 'move', title: '淺草線 東銀座 → 淺草 直達約 13 分' },
+      at('11:15', S.senso, { note: '御朱印到 17:00' }),
+      { time: '13:20', type: 'move', title: '銀座線 淺草 → 銀座 18 分' },
+      { time: '13:45', type: 'shop', title: 'GINZA SEAM 髮品店', place: 'SEAM GINZA', link: L.seam },
+      { time: '15:30', type: 'night', title: 'KITTE + 丸之內點燈(聖誕節)', note: '16:30 天黑 · 先上 5F 花まる抽號', place: 'KITTE 丸の内', link: L.kitte },
+      at('18:00', S.kitteDinner),
+      at('19:30', S.ameyoko, { note: '山手線 8 分回上野 · スギ薬局到 23:30' }),
+    ],
+  };
+  const west = [
+    { time: '07:30', type: 'move', title: '出發 → 豪德寺', note: '山手線 → 新宿 → 小田急各停' },
+    { time: '09:10', type: 'see', title: '豪德寺', note: '寺務所 15:00 前', place: '豪徳寺' },
+    { time: '11:00', type: 'food', title: '牛たんの檸檬 總本店', note: '網站排 12/26 11:00 · 限時 60 分', place: '牛たんの檸檬 新宿総本店' },
+  ];
+  const D4 = {
+    sky: [
+      ...west,
+      { time: '12:10', type: 'shop', title: '新宿東口逛街', note: '縮短到 40 分' },
+      { time: '13:00', type: 'see', title: '明治神宮', note: '山手線 4 分 · 16:00 關門', place: '明治神宮', link: L.meiji },
+      { time: '14:15', type: 'shop', title: '表參道 HOKA · @cosme', place: '表参道' },
+      { time: '15:00', type: 'shop', title: '貓街 → On · 鬼塚虎', note: '一路走到澀谷', place: 'キャットストリート 原宿' },
+      { time: '16:00', type: 'night', title: 'SHIBUYA SKY(日落 + 夜景)', note: '16:00 時段 ¥3,400 · 日落約 16:31 · 包包和帽子要存 46F 置物櫃 · 12/12 才開賣', place: 'SHIBUYA SKY', link: L.shsky },
+      { time: '17:30', type: 'see', title: '八公 · 十字路口', place: 'ハチ公前広場' },
+      { time: '18:00', type: 'food', title: '晚餐:ゆうじ 或 YAOYA', note: 'ゆうじ(燒肉)只能打電話訂;YAOYA(燒鳥)TableCheck 可網訂', place: '炭火焼肉ゆうじ' },
+      { time: '19:45', type: 'move', title: '銀座線直達回上野 33 分' },
+    ],
+    nosky: [
+      ...west,
+      { time: '12:10', type: 'shop', title: '新宿東口逛街' },
+      { time: '13:15', type: 'see', title: '明治神宮', note: '16:00 關門', place: '明治神宮', link: L.meiji },
+      { time: '14:30', type: 'shop', title: '表參道 HOKA · @cosme', place: '表参道' },
+      { time: '15:30', type: 'shop', title: '貓街 → On · 鬼塚虎', note: 'On 19:00 關', place: 'キャットストリート 原宿' },
+      { time: '17:00', type: 'see', title: '八公 · 十字路口', place: 'ハチ公前広場' },
+      { time: '17:30', type: 'food', title: '燒肉晚餐:ゆうじ', note: '只能打電話訂 03-3464-6448,很難打通;訂不到改 YAOYA(燒鳥,可網訂)', place: '炭火焼肉ゆうじ' },
+      { time: '19:15', type: 'move', title: '銀座線直達回上野' },
+    ],
+  };
+
+  return {
+    pick: [
+      '四天從上野一路往西:押上 → 淺草/銀座/丸之內 → 築地/六本木 → 新宿/澀谷,沒有回頭路',
+      '12/25 跟現在網站一樣,燒肉午餐和 teamLab 的時間都不用改',
+      '平安夜看丸之內點燈,聖誕節看六本木點燈',
+      '六本木只排 12/25,那天下雨就沒有別天補 —— 12/24 晚上先看天氣,會下雨就從日比谷搭日比谷線 10 分去先看',
+    ],
+    rows: [
+      ['12/23', 'd1'], ['12/24 平安夜', 'd2'], ['12/25 聖誕節', 'd3'], ['12/26', 'd4'],
+      ['展望台', 'tower'], ['六本木點燈', 'ropp'], ['燒肉', 'yaki'], ['要買/要改', 'todo'],
+    ],
+    versions: [
+      {
+        id: 1, name: '現行版 + 澀谷 SKY', sub: '網站行程不動,12/26 加上澀谷 SKY',
+        d1: '丸之內 + 銀座', d2: '淺草 + 晴空塔', d3: '築地 · 燒肉 · teamLab · 六本木', d4: '西線 + 澀谷 SKY',
+        tower: '兩座 · 每人 ¥6,000', ropp: '12/25(最後一天,沒備用)', yaki: '12/25 午餐(店家可換)',
+        todo: '加買澀谷 SKY 12/26 16:00',
+        pros: ['網站上排的時間都不用改', '兩座展望台都上'],
+        cons: ['12/23 下飛機還要東京、銀座來回跑', '平安夜的晴空塔人最多', '六本木排最後一天,沒有備用的晚上'],
+        tasks: ['澀谷 SKY 12/12 開賣,買 12/26 16:00'],
+        days: [D1.kitte, D2.cur, D3.cur, D4.sky],
+      },
+      {
+        id: 2, rec: true, name: '由東往西', sub: '第一晚晴空塔、平安夜丸之內、聖誕節六本木、最後一天澀谷',
+        d1: '晴空塔', d2: '淺草 + 銀座 + 丸之內', d3: '築地 · 燒肉 · teamLab · 六本木', d4: '西線 + 澀谷 SKY',
+        tower: '兩座 · 每人 ¥6,000', ropp: '12/25(12/24 晚可先去補)', yaki: '12/25 午餐(店家可換)',
+        todo: '晴空塔買 12/23 18:00 · 澀谷 SKY 12/26 16:00',
+        pros: ['四天往同一個方向走,沒有回頭路', '12/25 跟現在一樣,不用改訂位', '平安夜、聖誕節都看得到點燈'],
+        cons: ['兩座展望台都看夜景,有點重複', '抵達日就要先指定晴空塔時段'],
+        tasks: ['晴空塔官網買 12/23 18:00 以後時段', '澀谷 SKY 12/12 開賣,買 12/26 16:00'],
+        days: [D1.sky, D2.ginza, D3.cur, D4.sky],
+      },
+      {
+        id: 3, name: '平安夜日比谷線', sub: '只上晴空塔;平安夜沿日比谷線一路到六本木',
+        d1: '晴空塔', d2: '人形町 → 麻布台 → 六本木 → 月島', d3: '築地 + 淺草 + 銀座 + 丸之內', d4: '西線(不上澀谷 SKY)',
+        tower: '只上晴空塔 · 每人 ¥2,600', ropp: '12/24(12/25 備用)', yaki: '12/26 晚餐 ゆうじ',
+        todo: 'teamLab 改 12/24 · 取消 12/25 燒肉午餐 · 訂ゆうじ',
+        pros: ['平安夜幾乎只搭日比谷線', '六本木排平安夜,下雨的話 12/25 還能補', '門票最省'],
+        cons: ['要改 teamLab 日期、取消 12/25 燒肉午餐', '平安夜的六本木人很多', '12/25 一天跑築地、淺草、銀座、丸之內'],
+        tasks: ['teamLab 改 12/24 13:00', '取消 12/25 燒肉午餐訂位', '打電話訂ゆうじ 12/26 17:30(訂不到改 YAOYA)'],
+        days: [D1.sky, D2.hibiya, D3.east, D4.nosky],
+      },
+    ],
+    towers: [
+      ['高度', '350m 室內(加買可上 450m 迴廊)', '229m 戶外頂樓,沒有玻璃擋'],
+      ['大人票價', '12/23–24 ¥2,600 · 12/25 ¥2,800 · 12/26 ¥3,200;兩層 12/24 ¥3,800;現場每張 +¥500',
+        'WEB 14:59 前入場 ¥2,700 · 15:00 後 ¥3,400;現場 ¥3,000 / ¥3,700,WEB 賣完現場也沒有'],
+      ['什麼時候能買', '現在就能在官網買', '只賣 2 週內的日期:12/26 要到 12/12 才開賣,日落時段很快賣完'],
+      ['營業', '晚上時段看官網日曆', '10:00–22:30,最後入場 21:20'],
+      ['要注意', '室內,不怕颳風下雨', '頂樓不能帶包包、帽子(毛帽也不行)、自拍棒,要存 46F 置物櫃;強風、下雨、下雪頂樓會關'],
+      ['適合', '想看最高的夜景、怕冷', '想拍日落和十字路口,剛好排在澀谷那天'],
+    ],
+    towerLinks: [L.skytree, L.shsky],
+  };
+})();

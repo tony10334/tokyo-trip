@@ -779,6 +779,65 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 }
 .ov-hint { font-size: 11.5px; color: var(--ink-3); text-align: center; margin: 2px 0 10px; }
 
+/* ============ 前四天排法比較（日期條「比」） ============ */
+.daybtn-cmp .dn { color: var(--gold); }
+.daybtn-cmp.active .dn { color: #fff; }
+.plan-rec { border-color: rgba(243, 194, 104, .4); }
+.plan-rec h3 { color: var(--gold); }
+.plan-tip { font-size: 11.5px; color: var(--ink-3); }
+.plan-ul { margin: 0; padding-left: 1.15em; font-size: 13px; line-height: 1.7; color: var(--ink); }
+.plan-ul li + li { margin-top: 3px; }
+.plan-ul.good li::marker { color: var(--ok); }
+.plan-ul.bad li::marker { color: var(--red); }
+.plan-ul.todo li::marker { color: var(--gold); }
+.plan-scroll {
+  overflow-x: auto; margin: 0 -17px; padding: 0 17px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.plan-table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 12.5px; line-height: 1.55; }
+.plan-table th, .plan-table td {
+  padding: 8px 9px; border-bottom: 1px solid var(--line);
+  text-align: left; vertical-align: top;
+}
+.plan-table tbody tr:last-child th, .plan-table tbody tr:last-child td { border-bottom: 0; }
+.plan-table tbody th { color: var(--ink-2); font-weight: 700; white-space: nowrap; width: 1%; }
+.plan-table thead th { font-size: 12.5px; }
+.plan-table thead button {
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  font: inherit; font-weight: 800; color: var(--ink);
+  text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px;
+}
+.plan-table thead th.is-pick button { color: var(--red); text-decoration-color: var(--rose-line); }
+.plan-table .is-rec { background: rgba(243, 194, 104, .07); }
+.plan-table a { color: var(--gold); font-weight: 800; text-decoration: none; }
+.plan-tower { min-width: 480px; }
+
+.plan-tabs { display: flex; gap: 6px; margin: 4px 0 10px; scroll-margin-top: calc(var(--topbar-h, 72px) + 76px); }
+.plan-tab {
+  flex: 1 1 0; min-width: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 9px 11px; text-align: left; font-size: 12.5px; font-weight: 700; line-height: 1.35;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.plan-tab b { font-size: 18px; color: var(--ink-3); }
+.plan-tab.active { background: var(--rose); border-color: var(--rose-line); }
+.plan-tab.active b { color: var(--red); }
+.plan-sub { font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+.plan-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
+@media (max-width: 640px) { .plan-cols { grid-template-columns: 1fr; } }
+
+.plan-board .allday { flex-basis: 230px; }
+.plan-board .allday-head { cursor: default; }
+.plan-board .ov-time { flex-basis: 34px; }
+.pl-main { flex: 1; min-width: 0; }
+.pl-title { font-weight: 600; }
+.pl-note { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
+.pl-links { margin-left: 5px; white-space: nowrap; }
+.pl-links a { text-decoration: none; margin-left: 3px; }
+.ov-row.pl-move .pl-title { font-weight: 400; color: var(--ink-2); }
+
 /* ============ 編輯表單的「更多欄位」收合 ============ */
 .form-more { margin-bottom: 13px; border: 1px dashed var(--line); border-radius: 12px; }
 .form-more summary {

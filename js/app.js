@@ -18,6 +18,9 @@ const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
 let currentDay = 1;
 let overviewMode = false;   // true = 行程頁顯示七天總覽(左右滑換天)
+let compareMode = false;    // true = 行程頁顯示「前四天排法比較」(data.js 的 PLANS)
+const PLAN_KEY = 'tokyo-trip-plan-pick';   // 比較頁最後看的是哪個版本(只存本機)
+let planPick = (() => { try { return Number(localStorage.getItem(PLAN_KEY)) || 2; } catch (e) { return 2; } })();
 
 /* ------------------------------------------------------------
    啟動
@@ -176,6 +179,7 @@ function goDay(n) {
   if (n < 1 || n > ITINERARY.length) return;
   currentDay = n;
   overviewMode = false;
+  compareMode = false;
   renderItinerary();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -186,7 +190,7 @@ function renderItinerary() {
   bar.innerHTML = '';
   ITINERARY.forEach(d => {
     const b = document.createElement('button');
-    b.className = 'daybtn' + (!overviewMode && d.day === currentDay ? ' active' : '');
+    b.className = 'daybtn' + (!overviewMode && !compareMode && d.day === currentDay ? ' active' : '');
     const dt = dayDate(d.day);
     // 有出發日期就顯示成日曆（週三 / 23）,沒有就退回 D1 D2
     b.innerHTML = dt
@@ -200,13 +204,28 @@ function renderItinerary() {
   allBtn.innerHTML = `<span class="dw">7天</span><span class="dn">全</span>`;
   allBtn.addEventListener('click', () => {
     overviewMode = true;
+    compareMode = false;
     renderItinerary();
     window.scrollTo({ top: 0 });
   });
   bar.appendChild(allBtn);
+  if (typeof PLANS !== 'undefined') {
+    const cmpBtn = document.createElement('button');
+    cmpBtn.className = 'daybtn daybtn-cmp' + (compareMode ? ' active' : '');
+    cmpBtn.innerHTML = `<span class="dw">3版</span><span class="dn">比</span>`;
+    cmpBtn.title = '前四天三種排法比較';
+    cmpBtn.addEventListener('click', () => {
+      compareMode = true;
+      overviewMode = false;
+      renderItinerary();
+      window.scrollTo({ top: 0 });
+    });
+    bar.appendChild(cmpBtn);
+  }
 
   renderCountChip();
-  $('.daynav') && ($('.daynav').style.display = overviewMode ? 'none' : '');
+  $('.daynav') && ($('.daynav').style.display = (overviewMode || compareMode) ? 'none' : '');
+  if (compareMode) { renderPlans(); return; }
   if (overviewMode) { renderOverview(); return; }
 
   /* --- 日卡 --- */
@@ -287,6 +306,89 @@ function renderOverview() {
     const col = $(`#dayContent [data-ovday="${today}"]`);
     if (col) col.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
+}
+
+/* --- 前四天排法比較:一眼比較表 + 晴空塔 vs 澀谷 SKY + 選一個版本看四天時間軸 --- */
+function renderPlans() {
+  const P = PLANS;
+  if (!P.versions.some(v => v.id === planPick)) planPick = P.versions[0].id;
+  const v = P.versions.find(x => x.id === planPick);
+  const rec = P.versions.find(x => x.rec);
+  const dayLabel = i => { const dt = dayDate(i + 1); return dt ? `${fmtDate(dt)}（週${WEEK[dt.getDay()]}）` : `Day ${i + 1}`; };
+  const links = s => (s.place || s.link) ? `<span class="pl-links">${
+    s.place ? `<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.place)}">📍</a>` : ''}${
+    s.link ? `<a target="_blank" rel="noopener" href="${esc(s.link)}">🔗</a>` : ''}</span>` : '';
+
+  $('#dayMap').innerHTML = '';
+  $('#dayContent').innerHTML = `
+    <p class="ov-hint">前四天三種排法 · 逐日行程還是原本的,選定版本後再改</p>
+
+    ${rec ? `<div class="card plan-rec">
+      <div class="card-head"><h3>⭐ 推薦:版本 ${rec.id} ${esc(rec.name)}</h3></div>
+      <ul class="plan-ul">${P.pick.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>` : ''}
+
+    <div class="card">
+      <div class="card-head"><h3>一眼比較</h3><span class="plan-tip">點版本名稱看四天細節</span></div>
+      <div class="plan-scroll"><table class="plan-table">
+        <thead><tr><th></th>${P.versions.map(x => `
+          <th class="${x.rec ? 'is-rec' : ''}${x.id === planPick ? ' is-pick' : ''}">
+            <button type="button" data-plan="${x.id}">${x.rec ? '⭐ ' : ''}${x.id} ${esc(x.name)}</button></th>`).join('')}</tr></thead>
+        <tbody>${P.rows.map(([label, key]) => `<tr><th>${esc(label)}</th>${P.versions.map(x =>
+          `<td class="${x.rec ? 'is-rec' : ''}">${esc(x[key])}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>晴空塔 vs 澀谷 SKY</h3></div>
+      <div class="plan-scroll"><table class="plan-table plan-tower">
+        <thead><tr><th></th>
+          <th><a target="_blank" rel="noopener" href="${esc(P.towerLinks[0])}">晴空塔 🔗</a></th>
+          <th><a target="_blank" rel="noopener" href="${esc(P.towerLinks[1])}">澀谷 SKY 🔗</a></th></tr></thead>
+        <tbody>${P.towers.map(r => `<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="plan-tabs" role="tablist">${P.versions.map(x => `
+      <button type="button" role="tab" aria-selected="${x.id === planPick}" class="plan-tab${x.id === planPick ? ' active' : ''}" data-plan="${x.id}">
+        <b>${x.id}</b><span>${esc(x.name)}${x.rec ? ' ⭐' : ''}</span></button>`).join('')}
+    </div>
+
+    <div class="card plan-meta">
+      <p class="plan-sub">${esc(v.sub)}</p>
+      <div class="plan-cols">
+        <div><div class="sub-label">好處</div><ul class="plan-ul good">${v.pros.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+        <div><div class="sub-label">缺點</div><ul class="plan-ul bad">${v.cons.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+        <div><div class="sub-label">要買 / 要改</div><ul class="plan-ul todo">${v.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+      </div>
+    </div>
+
+    <div class="alldays plan-board">${v.days.map((items, i) => `
+      <article class="allday">
+        <div class="allday-head">
+          <div class="dc-label">${esc(dayLabel(i))}</div>
+          <h4>${esc(v['d' + (i + 1)])}</h4>
+        </div>
+        <div class="allday-body">${items.map(s => `
+          <div class="ov-row${s.type === 'move' ? ' pl-move' : ''}">
+            <span class="ov-time">${esc(s.time || '')}</span>
+            <span class="ov-ico">${itemIcon(s)}</span>
+            <div class="pl-main">
+              <div class="pl-title">${esc(s.title)}${links(s)}</div>
+              ${s.note ? `<div class="pl-note">${esc(s.note)}</div>` : ''}
+            </div>
+          </div>`).join('')}
+        </div>
+      </article>`).join('')}
+    </div>`;
+
+  $$('#dayContent [data-plan]').forEach(b => b.addEventListener('click', () => {
+    planPick = Number(b.dataset.plan);
+    try { localStorage.setItem(PLAN_KEY, String(planPick)); } catch (e) { /* 存不了就算了 */ }
+    renderPlans();
+    const tabs = $('#dayContent .plan-tabs');
+    if (b.closest('table') && tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
 }
 
 /** 行程頁標題下的膠囊：出發倒數 / 旅途中 Day N / 旅程結束 */
