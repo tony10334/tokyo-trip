@@ -1,0 +1,53 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "css/style.css"
+        ],
+        "createdAt": "2026-10-27T06:22:06.792Z",
+        "reason": "user confirmed: 使用者選定冬夜點燈方向,光暈是視覺語言"
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "css/style.css"
+        ],
+        "createdAt": "2026-10-27T06:22:07.025Z",
+        "reason": "user confirmed: 冬夜點燈的星點/燈光是主題本體"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-27T06:22:07.265Z",
+        "reason": "user confirmed: 冬夜點燈視覺語言(頁面層偵測同源 CSS)"
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-27T06:22:07.509Z",
+        "reason": "user confirmed: 冬夜點燈視覺語言(頁面層偵測同源 CSS)"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "css/style.css"
+        ],
+        "createdAt": "2026-10-27T06:23:30.166Z",
+        "reason": "user confirmed direction: .row-now/.ov-now「現在」進行中燈條,語意指示非裝飾"
+      }
+    ]
+  }
+}
