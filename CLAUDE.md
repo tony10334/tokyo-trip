@@ -82,6 +82,12 @@ js/app.js         畫面邏輯
 - **桌機 tabbar**:`<nav class="tabbar">` 在 DOM 裡放在 main **前面**,860px 以上才 sticky 得住,
   別把它搬回 body 結尾。
 
+### 分帳幣別（v=44 加入）
+
+- 支出多了 `cur: 'JPY' | 'TWD'`,`amount` 是那個幣別的原金額。**舊資料沒有 cur 一律當日幣**（`curOf()`）。
+- 結算三種檢視（`#balView`,偏好存本機 `tokyo-trip-bal-view`）:合併·台幣 / 合併·日幣（用房間匯率換算）/ 分開算（兩本帳各自結清,不用匯率）。
+- 表單幣別記在本機 `tokyo-trip-exp-cur`。
+
 ### ITINERARY 每個項目的欄位
 
 ```js

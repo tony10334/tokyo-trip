@@ -7,7 +7,7 @@
 <title>東京 7日6夜</title>
 <!-- ?v= 是版本號。每次改完 css/js 一定要把下面所有 v 一起 +1,
      否則瀏覽器可能拿到「新的 HTML + 舊的 JS」而整個畫面空白。 -->
-<link rel="stylesheet" href="css/style.css?v=43">
+<link rel="stylesheet" href="css/style.css?v=44">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛩️</text></svg>">
 </head>
 <body>
@@ -63,12 +63,12 @@
         <h3>目前結餘</h3>
         <button class="btn-ghost" id="btnMembers">成員設定</button>
       </div>
-      <div id="balanceList" class="balance-list"></div>
-
-      <div class="settle-wrap">
-        <div class="sub-label">誰要付給誰</div>
-        <div id="settleList" class="settle-list"></div>
+      <div class="seg" id="balView">
+        <button type="button" data-v="twd">合併 · 台幣</button>
+        <button type="button" data-v="jpy">合併 · 日幣</button>
+        <button type="button" data-v="split">分開算</button>
       </div>
+      <div id="ledger"></div>
 
       <div class="rate-row">
         <label for="rateInput">匯率 1 TWD =</label>
@@ -80,7 +80,7 @@
     <div class="card">
       <div class="card-head">
         <h3>新增支出</h3>
-        <span class="total-chip" id="totalChip">總計 ¥0</span>
+        <span class="total-chip" id="totalChip">總計 0</span>
       </div>
       <form id="expenseForm" class="form">
         <div class="field">
@@ -89,8 +89,14 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="expAmount">金額 (JPY)</label>
-            <input type="number" id="expAmount" min="1" step="1" inputmode="numeric" placeholder="0" required>
+            <label for="expAmount">金額</label>
+            <div class="amt-wrap">
+              <div class="seg seg-cur" id="expCur">
+                <button type="button" data-c="JPY">¥ 日幣</button>
+                <button type="button" data-c="TWD">NT$ 台幣</button>
+              </div>
+              <input type="number" id="expAmount" min="1" step="1" inputmode="numeric" placeholder="0" required>
+            </div>
           </div>
           <div class="field">
             <label for="expDay">日期</label>
@@ -206,9 +212,9 @@
 
 <div class="toast hidden" id="toast"></div>
 
-<script src="js/config.js?v=43"></script>
-<script src="js/data.js?v=43"></script>
-<script src="js/store.js?v=43"></script>
-<script src="js/app.js?v=43"></script>
+<script src="js/config.js?v=44"></script>
+<script src="js/data.js?v=44"></script>
+<script src="js/store.js?v=44"></script>
+<script src="js/app.js?v=44"></script>
 </body>
 </html>

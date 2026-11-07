@@ -480,6 +480,22 @@ main { max-width: 760px; margin: 0 auto; padding: 6px 14px 24px; }
 .bal-num.minus { color: var(--red); }
 .bal-sub { font-size: 11px; color: var(--ink-3); }
 
+.seg {
+  display: flex; gap: 4px; padding: 3px; margin-bottom: 12px;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 11px;
+}
+.seg button {
+  flex: 1; min-width: 0; padding: 7px 6px; border: 0; border-radius: 8px;
+  background: none; color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.seg button.on { background: var(--crimson); color: #fff; }
+.amt-wrap { display: grid; gap: 6px; }
+.seg-cur { margin-bottom: 0; }
+.ledger + .ledger { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.ledger-title { font-size: 13px; font-weight: 800; color: var(--gold); margin-bottom: 9px; }
+.ledger-note { margin-top: 10px; font-size: 11.5px; color: var(--ink-3); }
+
 .settle-wrap { margin-top: 18px; }
 .settle-list { display: grid; gap: 7px; }
 .settle {

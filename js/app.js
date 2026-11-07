@@ -904,6 +904,7 @@ function bindExpenseForm() {
       id: uid(),
       item: $('#expItem').value.trim(),
       amount: Math.round(Number($('#expAmount').value)),
+      cur: expCur(),
       payer: $('#expPayer').value,
       share,
       day: Number($('#expDay').value),
@@ -917,6 +918,19 @@ function bindExpenseForm() {
     $('#expItem').focus();
     toast('已加入');
   });
+
+  // 幣別切換:記在這台裝置（下一筆通常跟上一筆同幣別）
+  $$('#expCur button').forEach(b => b.addEventListener('click', () => {
+    try { localStorage.setItem(EXP_CUR_KEY, b.dataset.c); } catch (_) {}
+    paintSeg('#expCur', 'c', b.dataset.c);
+  }));
+  paintSeg('#expCur', 'c', expCur());
+
+  // 結算檢視:合併台幣 / 合併日幣 / 分開。顯示偏好存本機,不同步
+  $$('#balView button').forEach(b => b.addEventListener('click', () => {
+    try { localStorage.setItem(BAL_VIEW_KEY, b.dataset.v); } catch (_) {}
+    renderExpenses();
+  }));
 
   $('#btnAllShare').addEventListener('click', () => {
     const chips = $$('#expShare .chip');
@@ -963,32 +977,35 @@ function renderExpenses() {
 
   $('#rateInput').value = rate;
 
-  /* --- 結餘 --- */
-  const bal = balances(expenses, members);
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
-  $('#totalChip').textContent = `總計 ¥${nf(total)}`;
+  /* --- 總計:兩種幣別各自加總 --- */
+  const sumJ = expenses.filter(e => curOf(e) === 'JPY').reduce((s, e) => s + e.amount, 0);
+  const sumT = expenses.filter(e => curOf(e) === 'TWD').reduce((s, e) => s + e.amount, 0);
+  $('#totalChip').textContent = (sumJ || sumT)
+    ? [sumT ? money('TWD', sumT) : '', sumJ ? money('JPY', sumJ) : ''].filter(Boolean).join(' ＋ ')
+    : '總計 0';
 
-  $('#balanceList').innerHTML = members.map(m => {
-    const v = Math.round(bal[m] || 0);
-    const cls = v > 0 ? 'plus' : v < 0 ? 'minus' : '';
-    const sign = v > 0 ? '+' : v < 0 ? '−' : '';
-    return `<div class="bal">
-      <div class="bal-name">${esc(m)}</div>
-      <div class="bal-num ${cls}">${sign}¥${nf(Math.abs(v))}</div>
-      <div class="bal-sub">${v > 0 ? '可收回' : v < 0 ? '要付出' : '剛好打平'}${
-        rate ? ' · 約 NT$' + nf(Math.round(Math.abs(v) / rate)) : ''}</div>
-    </div>`;
-  }).join('');
-
-  /* --- 誰付給誰 --- */
-  const tx = settle(bal);
-  $('#settleList').innerHTML = tx.length
-    ? tx.map(t => `<div class="settle">
-        <b>${esc(t.from)}</b><span class="arrow">→</span><b>${esc(t.to)}</b>
-        <span class="amt">¥${nf(t.amount)}${
-          rate ? ` <small>NT$${nf(Math.round(t.amount / rate))}</small>` : ''}</span>
-      </div>`).join('')
-    : '<div class="empty">目前不用找錢</div>';
+  /* --- 結餘 + 誰付給誰 --- */
+  const view = balView();
+  paintSeg('#balView', 'v', view);
+  let html;
+  if (view === 'split') {
+    // 分開算:日幣帳、台幣帳各自結清,不用匯率
+    const parts = ['TWD', 'JPY'].map(c => {
+      const list = expenses.filter(e => curOf(e) === c);
+      if (!list.length) return '';
+      const bal = balances(list, members);
+      return ledgerHTML(c === 'TWD' ? '台幣帳' : '日幣帳', members, bal, settle(bal), c, null);
+    }).filter(Boolean);
+    html = parts.length ? parts.join('') : ledgerHTML(null, members, {}, [], 'JPY', null);
+  } else {
+    // 合併:全部換成同一種幣別再結清,另一種幣別當參考
+    const base = view === 'twd' ? 'TWD' : 'JPY';
+    const other = base === 'TWD' ? 'JPY' : 'TWD';
+    const bal = balances(expenses, members, e => toCur(e, base, rate));
+    html = ledgerHTML(null, members, bal, settle(bal), base, rate ? other : null);
+    if (sumJ && sumT) html += `<div class="ledger-note">日幣、台幣一起算,用下面的匯率 1 TWD = ${rate} JPY 換算</div>`;
+  }
+  $('#ledger').innerHTML = html;
 
   /* --- 明細 --- */
   const list = $('#expenseList');
@@ -1004,8 +1021,9 @@ function renderExpenses() {
           e.share.map(esc).join('、')}）</div>
       </div>
       <div class="exp-amt">
-        <div class="exp-jpy">¥${nf(e.amount)}</div>
-        ${rate ? `<div class="exp-twd">NT$${nf(Math.round(e.amount / rate))}</div>` : ''}
+        <div class="exp-jpy">${money(curOf(e), e.amount)}</div>
+        ${rate ? `<div class="exp-twd">≈ ${money(curOf(e) === 'TWD' ? 'JPY' : 'TWD',
+          toCur(e, curOf(e) === 'TWD' ? 'JPY' : 'TWD', rate))}</div>` : ''}
       </div>
       <button class="exp-del" data-del="${e.id}" title="刪除">✕</button>
     </div>`).join('');
@@ -1028,13 +1046,71 @@ function renderExpenses() {
     }));
 }
 
-/** 每個人的淨額：正數 = 別人欠他,負數 = 他要付 */
-function balances(expenses, members) {
+/* --- 幣別 --- */
+const EXP_CUR_KEY = 'tokyo-trip-exp-cur';
+const BAL_VIEW_KEY = 'tokyo-trip-bal-view';
+/** 舊資料沒有 cur 欄位,一律當日幣 */
+function curOf(e) { return e.cur === 'TWD' ? 'TWD' : 'JPY'; }
+function expCur() {
+  try { return localStorage.getItem(EXP_CUR_KEY) === 'TWD' ? 'TWD' : 'JPY'; } catch (_) { return 'JPY'; }
+}
+function balView() {
+  let v = '';
+  try { v = localStorage.getItem(BAL_VIEW_KEY) || ''; } catch (_) {}
+  return ['twd', 'jpy', 'split'].includes(v) ? v : 'twd';
+}
+/** 把一筆支出換成指定幣別（rate = 1 TWD 換幾 JPY） */
+function toCur(e, cur, rate) {
+  const c = curOf(e);
+  if (c === cur) return e.amount;
+  if (!rate) return 0;
+  return c === 'TWD' ? e.amount * rate : e.amount / rate;
+}
+function money(cur, n) {
+  return (cur === 'TWD' ? 'NT$' : '¥') + nf(Math.round(n));
+}
+function paintSeg(sel, key, val) {
+  $$(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset[key] === val));
+}
+/** 一本帳的結餘格子 + 誰付給誰。sub = 參考用的另一種幣別（null 不顯示） */
+function ledgerHTML(title, members, bal, tx, cur, sub) {
+  const rate = Store.state.rate;
+  const other = v => cur === 'TWD' ? v * rate : v / rate;
+  const cells = members.map(m => {
+    const v = Math.round(bal[m] || 0);
+    const cls = v > 0 ? 'plus' : v < 0 ? 'minus' : '';
+    const sign = v > 0 ? '+' : v < 0 ? '−' : '';
+    return `<div class="bal">
+      <div class="bal-name">${esc(m)}</div>
+      <div class="bal-num ${cls}">${sign}${money(cur, Math.abs(v))}</div>
+      <div class="bal-sub">${v > 0 ? '可收回' : v < 0 ? '要付出' : '剛好打平'}${
+        v && sub ? ' · 約 ' + money(sub, other(Math.abs(v))) : ''}</div>
+    </div>`;
+  }).join('');
+  const rows = tx.length
+    ? tx.map(t => `<div class="settle">
+        <b>${esc(t.from)}</b><span class="arrow">→</span><b>${esc(t.to)}</b>
+        <span class="amt">${money(cur, t.amount)}${sub ? ` <small>${money(sub, other(t.amount))}</small>` : ''}</span>
+      </div>`).join('')
+    : '<div class="empty">目前不用找錢</div>';
+  return `<div class="ledger">
+    ${title ? `<div class="ledger-title">${title}</div>` : ''}
+    <div class="balance-list">${cells}</div>
+    <div class="settle-wrap">
+      <div class="sub-label">誰要付給誰</div>
+      <div class="settle-list">${rows}</div>
+    </div>
+  </div>`;
+}
+
+/** 每個人的淨額：正數 = 別人欠他,負數 = 他要付。val = 這筆要算多少（預設原金額） */
+function balances(expenses, members, val = e => e.amount) {
   const bal = Object.fromEntries(members.map(m => [m, 0]));
   expenses.forEach(e => {
     if (!e.share || !e.share.length) return;
-    const each = e.amount / e.share.length;
-    if (bal[e.payer] !== undefined) bal[e.payer] += e.amount;
+    const amt = val(e);
+    const each = amt / e.share.length;
+    if (bal[e.payer] !== undefined) bal[e.payer] += amt;
     e.share.forEach(m => { if (bal[m] !== undefined) bal[m] -= each; });
   });
   return bal;
